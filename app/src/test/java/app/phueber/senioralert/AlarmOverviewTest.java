@@ -109,4 +109,39 @@ public class AlarmOverviewTest {
             assertEquals(n, AlarmOverview.rows(AlarmOverview.heightFor(n)));
         }
     }
+
+    @Test public void allAlarmsShownWhenTheyFit() {
+        assertEquals(0, AlarmOverview.shown(0, 3));
+        assertEquals(2, AlarmOverview.shown(2, 3));
+        assertEquals(3, AlarmOverview.shown(3, 3));
+        assertEquals(0, AlarmOverview.more(3, 3));
+        assertEquals(0, AlarmOverview.more(0, 3));
+    }
+
+    @Test public void lastRowSaysMoreWhenTooMany() {
+        // 5 alarms, 3 rows: 2 alarms and "+3 more".
+        assertEquals(2, AlarmOverview.shown(5, 3));
+        assertEquals(3, AlarmOverview.more(5, 3));
+        // One too many: the line stands for 2, never "+1" next to a free row.
+        assertEquals(1, AlarmOverview.shown(3, 2));
+        assertEquals(2, AlarmOverview.more(3, 2));
+    }
+
+    @Test public void shownPlusMoreAccountsForEveryAlarm() {
+        for (int slots = 2; slots <= AlarmOverview.MAX_ROWS; slots++) {
+            for (int n = 0; n <= 20; n++) {
+                int shown = AlarmOverview.shown(n, slots);
+                int more = AlarmOverview.more(n, slots);
+                assertEquals(n, shown + more);
+                assertTrue(shown + (more > 0 ? 1 : 0) <= slots);
+                assertTrue(more == 0 || more >= 2);
+            }
+        }
+    }
+
+    @Test public void oneRowKeepsTheNextAlarm() {
+        assertEquals(1, AlarmOverview.shown(5, 1));
+        assertEquals(0, AlarmOverview.more(5, 1));
+        assertEquals(1, AlarmOverview.shown(1, 1));
+    }
 }

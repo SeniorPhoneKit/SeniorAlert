@@ -129,14 +129,31 @@ public final class AlarmWidget extends AppWidgetProvider {
     private static RemoteViews list(Context ctx, List<Alarm> alarms, long now, TimeZone tz, int slots) {
         if (alarms.isEmpty()) return small(ctx, alarms, now, tz);
         RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.widget_list);
+        PendingIntent open = openApp(ctx);
         List<Alarm> ordered = AlarmOverview.ordered(alarms, now, tz);
+        int shown = AlarmOverview.shown(ordered.size(), slots);
+        int more = AlarmOverview.more(ordered.size(), slots);
         // Hosts re-apply every action to the existing view (reapply), so without
         // this an update would append a second set of rows below the first.
         rv.removeAllViews(R.id.widget_root);
         for (int i = 0; i < slots; i++) {
+            if (more > 0 && i == slots - 1) {
+                RemoteViews line = new RemoteViews(ctx.getPackageName(), R.layout.widget_more);
+                line.setTextViewText(R.id.more,
+                        ctx.getResources().getQuantityString(R.plurals.widget_more, more, more));
+                line.setOnClickPendingIntent(R.id.more, open);
+                rv.addView(R.id.widget_root, line);
+                continue;
+            }
             RemoteViews row = new RemoteViews(ctx.getPackageName(), R.layout.widget_row);
-            if (i < ordered.size()) fillRow(ctx, row, ordered.get(i), now, tz);
-            else row.setViewVisibility(R.id.row, View.INVISIBLE); // keeps rows the same height
+            if (i < shown) {
+                fillRow(ctx, row, ordered.get(i), now, tz);
+                // The root opens the app too; on the row as well so a row that a host
+                // or TalkBack treats as its own target still opens it.
+                row.setOnClickPendingIntent(R.id.row, open);
+            } else {
+                row.setViewVisibility(R.id.row, View.INVISIBLE); // keeps rows the same height
+            }
             rv.addView(R.id.widget_root, row);
         }
         Alarm next = AlarmOverview.next(alarms, now, tz);
@@ -144,7 +161,7 @@ public final class AlarmWidget extends AppWidgetProvider {
                 ? ctx.getString(R.string.widget_none)
                 : ctx.getString(R.string.widget_next, format(ctx, next),
                         dayWord(ctx, AlarmOverview.day(next, now, tz))));
-        rv.setOnClickPendingIntent(R.id.widget_root, openApp(ctx));
+        rv.setOnClickPendingIntent(R.id.widget_root, open);
         return rv;
     }
 
@@ -188,6 +205,12 @@ public final class AlarmWidget extends AppWidgetProvider {
         return DateFormat.getTimeFormat(ctx).format(c.getTime());
     }
 
+    /**
+     * Every tap opens the app. One intent for every widget id and view: request
+     * code 0 and identical extras-free intents, so ids cannot clash and
+     * FLAG_UPDATE_CURRENT only refreshes the same token. Immutable, as required
+     * from Android 12.
+     */
     private static PendingIntent openApp(Context ctx) {
         return PendingIntent.getActivity(ctx, 0,
                 new Intent(ctx, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),

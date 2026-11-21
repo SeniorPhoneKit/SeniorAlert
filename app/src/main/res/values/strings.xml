@@ -49,5 +49,9 @@
     <string name="widget_tomorrow">Tomorrow</string>
     <string name="widget_none">No alarm</string>
     <string name="widget_next">Next alarm %1$s, %2$s</string>
+    <plurals name="widget_more">
+        <item quantity="one">+%d more alarm – tap to see all</item>
+        <item quantity="other">+%d more alarms – tap to see all</item>
+    </plurals>
     <string name="widget_sample_time" translatable="false">07:30</string>
 </resources>

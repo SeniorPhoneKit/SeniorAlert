@@ -49,4 +49,8 @@
     <string name="widget_tomorrow">Morgen</string>
     <string name="widget_none">Kein Wecker</string>
     <string name="widget_next">Nächster Wecker %1$s, %2$s</string>
+    <plurals name="widget_more">
+        <item quantity="one">+%d weiterer Wecker – tippen für alle</item>
+        <item quantity="other">+%d weitere Wecker – tippen für alle</item>
+    </plurals>
 </resources>

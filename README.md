@@ -54,7 +54,8 @@ the current time and one huge red **Turn off** button.
 The app has a widget that shows the next alarm on the home screen: a bell, the
 time in big digits and **Today** or **Tomorrow** (**No alarm** when none is
 ON). Made bigger, it shows all alarms, the next one first, ON ones in green,
-each with ON or OFF in words. It only shows; a tap opens the app, so the lock
+each with ON or OFF in words; if not all fit, the last line says how many
+more there are. It only shows; a tap anywhere on it opens the app, so the lock
 still decides what can be changed.
 
 To add it: touch and hold an empty spot on the home screen, choose
@@ -198,8 +199,9 @@ ist, und zeigt die Uhrzeit und einen riesigen roten Knopf **Ausschalten**.
 Die App hat ein Widget, das den nächsten Wecker auf dem Startbildschirm zeigt:
 eine Glocke, die Uhrzeit in großen Ziffern und **Heute** oder **Morgen**
 (**Kein Wecker**, wenn keiner an ist). Größer gezogen zeigt es alle Wecker, den
-nächsten zuerst, eingeschaltete grün, jeweils mit AN oder AUS in Worten. Es
-zeigt nur an; Antippen öffnet die App, damit weiter die Sperre bestimmt, was
+nächsten zuerst, eingeschaltete grün, jeweils mit AN oder AUS in Worten; passen nicht
+alle hin, sagt die letzte Zeile, wie viele es noch gibt. Es zeigt nur an;
+Antippen irgendwo darauf öffnet die App, damit weiter die Sperre bestimmt, was
 geändert werden kann.
 
 Hinzufügen: auf eine freie Stelle des Startbildschirms lange drücken,

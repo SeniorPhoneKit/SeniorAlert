@@ -8,8 +8,8 @@ import java.util.TimeZone;
 
 /**
  * What the home-screen widget shows, worked out without Android: the next alarm,
- * whether it rings today or tomorrow, the list order (next alarm first) and how
- * many rows fit. Pure Java, unit tested; {@link AlarmWidget} only draws it.
+ * whether it rings today or tomorrow, the list order (next alarm first), how
+ * many rows fit and whether the last one says "+N more". Pure Java, unit tested; {@link AlarmWidget} only draws it.
  */
 public final class AlarmOverview {
     /** The word under the next alarm's time. */
@@ -86,6 +86,23 @@ public final class AlarmOverview {
     public static int rows(float heightDp) {
         int n = (int) ((heightDp - PAD_DP) / ROW_DP);
         return Math.max(1, Math.min(MAX_ROWS, n));
+    }
+
+    /**
+     * How many alarms get a row of their own when {@code alarms} alarms meet
+     * {@code slots} rows. All of them if they fit; otherwise the last row is given
+     * up for the "+N more" line, so a senior knows there are more. With one row
+     * there is no room for both, and the next alarm matters more than the count.
+     */
+    public static int shown(int alarms, int slots) {
+        if (alarms <= slots) return Math.max(0, alarms);
+        return slots <= 1 ? Math.max(0, slots) : slots - 1;
+    }
+
+    /** How many alarms the "+N more" line stands for; 0 means no such line. */
+    public static int more(int alarms, int slots) {
+        if (slots <= 1) return 0;
+        return Math.max(0, alarms - shown(alarms, slots));
     }
 
     /** Smallest height (dp) that fits {@code n} rows; inverse of {@link #rows}. */

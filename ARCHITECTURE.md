@@ -19,8 +19,8 @@ Plain Java, platform APIs only. Keep this file current with every change.
 | `Automation` | Commands for automation apps (Trigly, Tasker): action and extra names, lenient parsing of the string extras (`time` HH:MM, `id`, `state`), and which alarms a command means (`select`: by id, else all at that time). Pure. |
 | `AutomationReceiver` | Exported receiver for those commands (ALARM_ON/OFF/SET/DELETE, STOP, LOCK, UNLOCK). Calls `Store` and `Scheduler` exactly as the taps in `MainActivity` do; STOP calls `RingService.stop`. |
 | `BootReceiver` | On boot, package replace, time or time-zone change and exact-alarm permission change: `Scheduler.rescheduleAll`, then redraws the widget. |
-| `AlarmOverview` | What the widget shows: the next alarm (earliest `NextTrigger` among ON alarms), Today/Tomorrow/None for it, the list order (ON by ring time, then OFF by time of day), the next local midnight, and the size rules (wide from 150dp, rows of at least 64dp, at most 8). Pure. |
-| `AlarmWidget` | Home-screen widget (`AppWidgetProvider`, `res/xml/alarm_widget.xml`, layouts `widget_small`, `widget_list`, `widget_row`, `widget_preview`). Draws `AlarmOverview`; read-only, a tap opens `MainActivity`. See "Widget". |
+| `AlarmOverview` | What the widget shows: the next alarm (earliest `NextTrigger` among ON alarms), Today/Tomorrow/None for it, the list order (ON by ring time, then OFF by time of day), the next local midnight, the size rules (wide from 150dp, rows of at least 64dp, at most 8) and how many alarms get a row before the last one becomes "+N more". Pure. |
+| `AlarmWidget` | Home-screen widget (`AppWidgetProvider`, `res/xml/alarm_widget.xml`, layouts `widget_small`, `widget_list`, `widget_row`, `widget_more`, `widget_preview`). Draws `AlarmOverview`; read-only, a tap opens `MainActivity`. See "Widget". |
 | `RingService` | Foreground service (mediaPlayback): sound, vibration, full-screen notification, 2-minute hard cap from the first START (a second alarm joins the ring, it does not extend it), schedules the backup stop (StopReceiver). Sound is the platform's `DEFAULT_ALARM_ALERT_URI` (works before first unlock), ringtone second, a plain tone last. Owns `start`/`stop`/`isRinging`; teardown is total and exception-safe. If `startForeground` fails it shuts down silently rather than ring with no way to stop it. |
 | `RingActivity` | Ringing screen over the lock screen: one big Turn-off button, volume keys also stop. |
 | `OneLineText` | A `TextView` that stays on one line and shrinks its text only as far as needed to fit its width. Used for both clock times, so a very large phone font never wraps a time ("10:30" / "AM"). The platform autosize needs a fixed height; this needs only the width. |
@@ -91,6 +91,18 @@ can pick Small, 1 row, 2 rows or Full page.
   12 `onAppWidgetOptionsChanged` redraws from the portrait size (min width, max
   height). Rows share the height evenly; empty slots are invisible rows, so
   few alarms do not make huge rows. Texts autosize, so big fonts still fit.
+- Too many alarms: when they do not all fit, the last row is a grey
+  "+N more alarms – tap to see all" line (`widget_more`, plurals
+  `widget_more`) instead of the alarms silently missing. `AlarmOverview.shown`
+  and `more` decide; the line always stands for at least 2 (it takes the place
+  of one alarm). The 1-row size keeps the next alarm and has no such line.
+- Taps: `openApp` is one immutable `PendingIntent.getActivity` (request code 0,
+  `FLAG_IMMUTABLE | FLAG_UPDATE_CURRENT`, explicit `MainActivity`, NEW_TASK),
+  the same for every widget id. It is set on `widget_root` of the small face
+  and of each size's list, so the whole widget (padding, invisible slots,
+  non-clickable bell and texts) opens the app, and also on each alarm row and
+  the "more" line, which are added with `addView` (not a collection, so no
+  fill-in intents are needed).
 - The list calls `removeAllViews` before adding rows: hosts re-apply all
   actions to the existing view, and `addView` would otherwise append a second set.
 - Read-only on purpose: toggling from the home screen would bypass the lock

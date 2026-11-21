@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Last row of the wide face when not all alarms fit: "+N more alarms – tap to see
+     all". Same size and grey as an OFF row; the text shrinks to fit. -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/more"
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_margin="2dp"
+    android:layout_weight="1"
+    android:autoSizeMaxTextSize="26sp"
+    android:autoSizeMinTextSize="8sp"
+    android:autoSizeTextType="uniform"
+    android:background="@drawable/widget_row_off"
+    android:gravity="center"
+    android:maxLines="2"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="4dp"
+    android:textColor="@color/widget_off_text"
+    android:textStyle="bold" />
