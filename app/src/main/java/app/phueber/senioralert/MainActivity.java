@@ -104,6 +104,7 @@ public class MainActivity extends Activity {
         // Back is pinned below the list, always in view: many seniors do not know
         // the system back gesture. It leaves the app for the home screen.
         View back = backButton();
+        NavBar.hideWhileOn(back); // SeniorNav's bar already has Back and Home
         LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         blp.setMargins(p, dp(8), p, dp(12));
