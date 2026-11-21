@@ -11,7 +11,7 @@ Plain Java, platform APIs only. Keep this file current with every change.
 | `Alarm` | Immutable one-shot alarm (id > 0, hour, minute, enabled). Pure Java, validated. |
 | `AlarmCodec` | List of alarms to/from one string `id:h:m:e;...`. Skips malformed entries, drops duplicate ids, sorts by time then id. Pure. |
 | `NextTrigger` | Next fire time for hour:minute in a given `TimeZone`, via `Calendar`, so 07:00 stays 07:00 across DST. Used when an alarm is switched ON: the next occurrence of its time; "now" (same minute) means tomorrow. Pure. |
-| `Pin` | PIN validation (4-8 ASCII digits), salted SHA-256 hash, constant-time compare. Pure. |
+| `Pin` | PIN validation (4-8 ASCII digits), salted SHA-256 hash, constant-time compare, and the fixed reset PIN (`RESET`, same in every Senior app; public on purpose). Pure. |
 | `Store` | All persistent state (alarms, next id, lock flag, PIN salt/hash) in device-protected SharedPreferences. `isLocked()` is the launcher's lock or the own PIN lock. |
 | `LauncherLock` | Reads SeniorLauncher's lock (`content://app.phueber.seniorlauncher.lock/state`) and lifts it with its PIN (`call(..., "unlock", pin)`). With the launcher installed, the home screen's lock is the lock: the Lock/PIN button gives way to a note, and "Hold to unlock" asks for the home screen's PIN right here. Without it, the PIN lock works as before. Only the alarm list uses it, never the ringing path. |
 | `Scheduler` | Arms/cancels one `AlarmManager.setAlarmClock` per enabled alarm (inexact `setAndAllowWhileIdle` only if exact alarms are denied). `rescheduleAll` re-arms everything from scratch (boot, time change); `ensureArmed` arms only what AlarmManager lost (app opened), so a pending, possibly late alarm is never pushed to tomorrow. |
@@ -92,4 +92,4 @@ a hash and only guards against accidents, not attackers. `allowBackup` is off.
 - No snooze: an alarm rings once and then switches itself OFF.
 - No labels, no weekday selection: every alarm is one time, ringing once at its next occurrence. No repeating alarms.
 - No dependencies: no AndroidX, Kotlin or libraries; fewer things to break and to update.
-- No PIN recovery: clearing app data is the reset.
+- PIN recovery is the fixed reset PIN `Pin.RESET` (506614); it is public, since the lock is a guard rail, not security.

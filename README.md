@@ -92,9 +92,8 @@ Then:
 
 ## Forgotten PIN
 
-There is no way to recover it. Clear the app's data: Settings, Apps,
-SeniorAlert, Storage, Clear data. This removes the PIN **and all alarms**.
-Then set everything up again.
+Enter the reset PIN **506614**. It opens the lock whatever PIN was chosen,
+in every Senior app, and the alarms stay.
 
 ## Privacy
 
@@ -205,9 +204,8 @@ Danach:
 
 ## PIN vergessen
 
-Sie lässt sich nicht wiederherstellen. App-Daten löschen: Einstellungen, Apps,
-SeniorAlert, Speicher, Daten löschen. Damit sind die PIN **und alle Wecker**
-weg. Danach alles neu einrichten.
+Die Reset-PIN **506614** eingeben. Sie öffnet die Sperre unabhängig von der
+gewählten PIN, in jeder Senior-App, und die Wecker bleiben.
 
 ## Datenschutz
 
