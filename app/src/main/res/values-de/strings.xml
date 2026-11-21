@@ -42,4 +42,11 @@
     <string name="notif_ringing">Wecker</string>
     <string name="notif_tap">Tippen zum Ausschalten</string>
     <string name="lock_with_home">Wird zusammen mit der Startseite gesperrt: dort Einstellungen → Sperren.</string>
+
+    <!-- Startbildschirm-Widget -->
+    <string name="widget_description">Zeigt den nächsten Wecker. Größer gezogen zeigt es alle Wecker. Tippen öffnet die Wecker.</string>
+    <string name="widget_today">Heute</string>
+    <string name="widget_tomorrow">Morgen</string>
+    <string name="widget_none">Kein Wecker</string>
+    <string name="widget_next">Nächster Wecker %1$s, %2$s</string>
 </resources>

@@ -161,6 +161,8 @@ public class MainActivity extends Activity {
         // Self-healing: alarms are lost e.g. after a force-stop. Only arms what is
         // missing, so a pending (possibly late, inexact) alarm keeps its time.
         Scheduler.ensureArmed(this);
+        // Same for the widget's midnight refresh; also redraws it, which is cheap.
+        AlarmWidget.updateAll(this);
         maybeAutoRequestNotifications();
         try {
             getContentResolver().registerContentObserver(LauncherLock.STATE, false, launcherLock);

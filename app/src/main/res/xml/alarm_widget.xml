@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The API 31+ attributes (target cells, max resize, preview layout) are simply
+     ignored below; minWidth/minHeight keep it one cell there.
+     One cell by default (next alarm); resizable up to a full page (the alarm list).
+     Never refreshed on a timer: AlarmWidget redraws when alarms change, on time,
+     zone and language changes, and once just after midnight (Today/Tomorrow). -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:description="@string/widget_description"
+    android:initialLayout="@layout/widget_small"
+    android:minWidth="40dp"
+    android:minHeight="40dp"
+    android:minResizeWidth="40dp"
+    android:minResizeHeight="40dp"
+    android:maxResizeWidth="640dp"
+    android:maxResizeHeight="720dp"
+    android:previewImage="@drawable/ic_launcher"
+    android:previewLayout="@layout/widget_preview"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="1"
+    android:targetCellHeight="1"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen"
+    tools:ignore="UnusedAttribute" />

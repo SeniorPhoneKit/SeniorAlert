@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Home-screen widget colours: the app's page and text by day. The home screen
+         may ask for night colours (SeniorLauncher does in its dark themes), see
+         values-night. ON rows stay the app's green in both. -->
+    <color name="widget_bg">#F4F2ED</color>
+    <color name="widget_text">#1C1B19</color>
+    <color name="widget_muted">#55524B</color>
+    <color name="widget_off_bg">#E6E3DC</color>
+    <color name="widget_off_text">#3D3A34</color>
+    <color name="widget_on_bg">#2E7D32</color>
+    <color name="widget_on_text">#FFFFFF</color>
+</resources>

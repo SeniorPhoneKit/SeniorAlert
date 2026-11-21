@@ -12,13 +12,15 @@ Plain Java, platform APIs only. Keep this file current with every change.
 | `AlarmCodec` | List of alarms to/from one string `id:h:m:e;...`. Skips malformed entries, drops duplicate ids, sorts by time then id. Pure. |
 | `NextTrigger` | Next fire time for hour:minute in a given `TimeZone`, via `Calendar`, so 07:00 stays 07:00 across DST. Used when an alarm is switched ON: the next occurrence of its time; "now" (same minute) means tomorrow. Pure. |
 | `Pin` | PIN validation (4-8 ASCII digits), salted SHA-256 hash, constant-time compare, and the fixed reset PIN (`RESET`, same in every Senior app; public on purpose). Pure. |
-| `Store` | All persistent state (alarms, next id, lock flag, PIN salt/hash) in device-protected SharedPreferences. `isLocked()` is the launcher's lock or the own PIN lock. |
+| `Store` | All persistent state (alarms, next id, lock flag, PIN salt/hash) in device-protected SharedPreferences. `isLocked()` is the launcher's lock or the own PIN lock. Every alarm write (add/update/delete) redraws the widget. |
 | `LauncherLock` | Reads SeniorLauncher's lock (`content://app.phueber.seniorlauncher.lock/state`) and lifts it with its PIN (`call(..., "unlock", pin)`). With the launcher installed, the home screen's lock is the lock: the Lock/PIN button gives way to a note, and "Hold to unlock" asks for the home screen's PIN right here. Without it, the PIN lock works as before. Only the alarm list uses it, never the ringing path. |
 | `Scheduler` | Arms/cancels one `AlarmManager.setAlarmClock` per enabled alarm (inexact `setAndAllowWhileIdle` only if exact alarms are denied). `rescheduleAll` re-arms everything from scratch (boot, time change); `ensureArmed` arms only what AlarmManager lost (app opened), so a pending, possibly late alarm is never pushed to tomorrow. |
 | `AlarmReceiver` | Receives a fired alarm: marks it OFF in `Store` first (alarms do not repeat), then starts `RingService`. If Android refuses the start, it puts the alarm back ON (armed for the next occurrence) so a missed ring never shows as OFF. |
 | `Automation` | Commands for automation apps (Trigly, Tasker): action and extra names, lenient parsing of the string extras (`time` HH:MM, `id`, `state`), and which alarms a command means (`select`: by id, else all at that time). Pure. |
 | `AutomationReceiver` | Exported receiver for those commands (ALARM_ON/OFF/SET/DELETE, STOP, LOCK, UNLOCK). Calls `Store` and `Scheduler` exactly as the taps in `MainActivity` do; STOP calls `RingService.stop`. |
-| `BootReceiver` | On boot, package replace, time or time-zone change and exact-alarm permission change: `Scheduler.rescheduleAll`. |
+| `BootReceiver` | On boot, package replace, time or time-zone change and exact-alarm permission change: `Scheduler.rescheduleAll`, then redraws the widget. |
+| `AlarmOverview` | What the widget shows: the next alarm (earliest `NextTrigger` among ON alarms), Today/Tomorrow/None for it, the list order (ON by ring time, then OFF by time of day), the next local midnight, and the size rules (wide from 150dp, rows of at least 64dp, at most 8). Pure. |
+| `AlarmWidget` | Home-screen widget (`AppWidgetProvider`, `res/xml/alarm_widget.xml`, layouts `widget_small`, `widget_list`, `widget_row`, `widget_preview`). Draws `AlarmOverview`; read-only, a tap opens `MainActivity`. See "Widget". |
 | `RingService` | Foreground service (mediaPlayback): sound, vibration, full-screen notification, 2-minute hard cap from the first START (a second alarm joins the ring, it does not extend it), schedules the backup stop (StopReceiver). Sound is the platform's `DEFAULT_ALARM_ALERT_URI` (works before first unlock), ringtone second, a plain tone last. Owns `start`/`stop`/`isRinging`; teardown is total and exception-safe. If `startForeground` fails it shuts down silently rather than ring with no way to stop it. |
 | `RingActivity` | Ringing screen over the lock screen: one big Turn-off button, volume keys also stop. |
 | `OneLineText` | A `TextView` that stays on one line and shrinks its text only as far as needed to fit its width. Used for both clock times, so a very large phone font never wraps a time ("10:30" / "AM"). The platform autosize needs a fixed height; this needs only the width. |
@@ -74,9 +76,45 @@ one lock; a second own PIN could disagree with it). `UNLOCK` goes through
 `Store.unlock`, so the launcher's PIN or the reset PIN works. `STOP` ends in the
 same stop routine as every other stop path and adds no step to them.
 
+## Widget
+
+`AlarmWidget` shows the next alarm in one cell (bell, time, Today/Tomorrow/No
+alarm) and the alarm list when wider, next alarm first, ON rows filled green
+(white text), OFF rows grey, each with ON/OFF in words. Its provider asks for
+1x1 target cells and 40dp minimum (so SeniorLauncher puts it in one tile), is
+resizable both ways down to 40dp and up to 640x720dp, so the launcher's helper
+can pick Small, 1 row, 2 rows or Full page.
+
+- Size: on Android 12+ one `RemoteViews(Map<SizeF, RemoteViews>)`: the small
+  face at 40x40, the list from 150dp wide with 1 to 8 rows at the heights
+  `AlarmOverview.heightFor(n)`; the home screen picks the one that fits. Below
+  12 `onAppWidgetOptionsChanged` redraws from the portrait size (min width, max
+  height). Rows share the height evenly; empty slots are invisible rows, so
+  few alarms do not make huge rows. Texts autosize, so big fonts still fit.
+- The list calls `removeAllViews` before adding rows: hosts re-apply all
+  actions to the existing view, and `addView` would otherwise append a second set.
+- Read-only on purpose: toggling from the home screen would bypass the lock
+  and invite accidental changes. A tap opens the app.
+- Updates without polling: Store's alarm writes (so every tap, automation
+  command, fired alarm and the AlarmReceiver fallback), `BootReceiver` (boot,
+  time, zone, 12/24-hour switch, app update), `LOCALE_CHANGED`, `MainActivity.onResume`
+  (re-arms the midnight refresh after a force-stop), and a non-wakeup
+  `AlarmManager.setWindow(RTC)` just after the next local midnight (10-minute
+  window) so Tomorrow becomes Today. `onDisabled` cancels it. `updateAll`
+  never throws, because it runs inside Store on the alarm path.
+- Colours: `res/values/widget.xml` with a `values-night` variant, since
+  SeniorLauncher switches widget apps to night colours in its dark themes; the
+  app itself stays light. Colours set from code are only the ones equal in
+  both (white on green); the rest come from resources resolved by the host.
+- Direct boot: the receiver is `directBootAware` and reads device-protected
+  Store, so the widget is right before the first unlock.
+- Picker preview: `previewLayout` (`widget_preview`, sample 07:30 Tomorrow) on
+  Android 12+, the app icon as `previewImage` before.
+
 ## Look
 
-Plain platform views built in code, with no layout XML and no UI library. Colours live in
+Plain platform views built in code, with no layout XML and no UI library
+(the widget's layouts are XML because `RemoteViews` needs them). Colours live in
 `res/values/styles.xml`. `AppTheme` is a warm off-white page with dark system-bar
 icons (`values-v27` adds dark navigation-bar icons). `RingTheme` is all red.
 Both screens use `fitsSystemWindows`, because Android 15 draws apps edge to edge.

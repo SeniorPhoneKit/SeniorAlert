@@ -30,5 +30,8 @@ public final class BootReceiver extends BroadcastReceiver {
         } catch (RuntimeException e) {
             Log.e("BootReceiver", "reschedule failed", e);
         }
+        // Today/Tomorrow and the 12/24-hour format may have changed; the midnight
+        // refresh is gone after a reboot. Never throws.
+        AlarmWidget.updateAll(ctx);
     }
 }

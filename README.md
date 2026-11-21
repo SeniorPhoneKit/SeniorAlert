@@ -49,6 +49,19 @@ home screen, for anyone who does not know the back gesture.
 **When an alarm rings.** The phone wakes up, even when it is locked, and shows
 the current time and one huge red **Turn off** button.
 
+## Widget on the home screen
+
+The app has a widget that shows the next alarm on the home screen: a bell, the
+time in big digits and **Today** or **Tomorrow** (**No alarm** when none is
+ON). Made bigger, it shows all alarms, the next one first, ON ones in green,
+each with ON or OFF in words. It only shows; a tap opens the app, so the lock
+still decides what can be changed.
+
+To add it: touch and hold an empty spot on the home screen, choose
+**Widgets**, find **Alarm** and drag it to the home screen. In SeniorLauncher:
+**Widgets**, then tap **Alarm**; on the same screen **Small, like an app**, **1 row**,
+**2 rows** or **Full page** sets its size.
+
 ## It can always be switched off
 
 A ringing alarm can never get stuck, locked or not. Any of these stops it, and
@@ -179,6 +192,20 @@ Startbildschirm des Telefons, für alle, die die Zurück-Geste nicht kennen.
 
 **Wenn ein Wecker klingelt.** Das Telefon wacht auf, auch wenn es gesperrt
 ist, und zeigt die Uhrzeit und einen riesigen roten Knopf **Ausschalten**.
+
+## Widget auf dem Startbildschirm
+
+Die App hat ein Widget, das den nächsten Wecker auf dem Startbildschirm zeigt:
+eine Glocke, die Uhrzeit in großen Ziffern und **Heute** oder **Morgen**
+(**Kein Wecker**, wenn keiner an ist). Größer gezogen zeigt es alle Wecker, den
+nächsten zuerst, eingeschaltete grün, jeweils mit AN oder AUS in Worten. Es
+zeigt nur an; Antippen öffnet die App, damit weiter die Sperre bestimmt, was
+geändert werden kann.
+
+Hinzufügen: auf eine freie Stelle des Startbildschirms lange drücken,
+**Widgets** wählen, **Wecker** suchen und auf den Startbildschirm ziehen. In
+SeniorLauncher: **Widgets**, dann **Wecker** antippen; dort stellt **Klein, wie eine App**,
+**1 Zeile**, **2 Zeilen** oder **Ganze Seite** die Größe ein.
 
 ## Ausschalten geht immer
 

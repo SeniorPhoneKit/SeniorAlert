@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A list row for an alarm that is ON: filled green, like the active ON half in the app. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="@color/widget_on_bg" />
+    <corners android:radius="12dp" />
+</shape>

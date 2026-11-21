@@ -12,6 +12,9 @@ import java.util.List;
  * re-armed (and ring) before the phone is unlocked for the first time
  * (LOCKED_BOOT_COMPLETED / direct boot). The data is not sensitive.
  *
+ * Every alarm write redraws the home-screen widget (AlarmWidget), so each
+ * caller (taps, automation, a fired alarm) keeps it current without knowing it.
+ *
  * Methods are synchronized: receivers, the service and the activity all run on
  * the main thread today, but nothing should depend on that.
  */
@@ -55,6 +58,7 @@ public final class Store {
         list.add(a);
         AlarmCodec.sort(list);
         prefs.edit().putInt(K_NEXT_ID, id + 1).putString(K_ALARMS, AlarmCodec.encode(list)).commit();
+        AlarmWidget.updateAll(app);
         return a;
     }
 
@@ -66,6 +70,7 @@ public final class Store {
         }
         AlarmCodec.sort(list);
         prefs.edit().putString(K_ALARMS, AlarmCodec.encode(list)).commit();
+        AlarmWidget.updateAll(app);
     }
 
     /** Caller must cancel the scheduled alarm. */
@@ -73,6 +78,7 @@ public final class Store {
         List<Alarm> list = alarms();
         list.removeIf(a -> a.id == id);
         prefs.edit().putString(K_ALARMS, AlarmCodec.encode(list)).commit();
+        AlarmWidget.updateAll(app);
     }
 
     /**

@@ -106,5 +106,22 @@
                 <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
             </intent-filter>
         </receiver>
+
+        <!-- Home-screen widget: next alarm, or the alarm list when made bigger.
+             Read-only, a tap opens the app. Reads device-protected Store, so it is
+             drawn before the first unlock too. -->
+        <receiver
+            android:name=".AlarmWidget"
+            android:directBootAware="true"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.LOCALE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/alarm_widget" />
+        </receiver>
     </application>
 </manifest>

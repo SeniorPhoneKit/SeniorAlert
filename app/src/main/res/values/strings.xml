@@ -42,4 +42,12 @@
     <string name="notif_ringing">Alarm</string>
     <string name="notif_tap">Tap to turn off</string>
     <string name="lock_with_home">Locks together with the home screen: Settings → Lock there.</string>
+
+    <!-- Home-screen widget -->
+    <string name="widget_description">Shows the next alarm. Make it bigger to see all alarms. Tap to open the alarms.</string>
+    <string name="widget_today">Today</string>
+    <string name="widget_tomorrow">Tomorrow</string>
+    <string name="widget_none">No alarm</string>
+    <string name="widget_next">Next alarm %1$s, %2$s</string>
+    <string name="widget_sample_time" translatable="false">07:30</string>
 </resources>
