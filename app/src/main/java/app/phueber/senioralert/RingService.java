@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.content.pm.ServiceInfo;
 import android.graphics.drawable.Icon;
 import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.ToneGenerator;
@@ -43,6 +44,12 @@ import android.util.Log;
  * The wake lock's own timeout is NOT a stop path; it only bounds the CPU hold.
  * All state lives on the main thread; every entry point that may come from
  * elsewhere hops to it.
+ *
+ * A service started with startForegroundService() must call startForeground()
+ * before it is stopped, or Android crashes the app. A stop that arrives while a
+ * START is still on its way therefore silences everything at once and leaves only
+ * the ending of the service to begin(), which answers the START and then shuts
+ * down (stopPending). The stop itself never waits for anything.
  */
 public final class RingService extends Service {
     private static final String TAG = "RingService";
@@ -54,13 +61,26 @@ public final class RingService extends Service {
     // Longer than RING_MS so it never cuts ringing short, but bounded so it can never leak.
     private static final long WAKE_MS = 150_000L;
     private static final long TONE_PERIOD_MS = 1500L;
+    // During a phone call: a short, quiet beep in the earpiece, like a call-waiting tone.
+    private static final long CALL_TONE_PERIOD_MS = 4000L;
+    private static final int CALL_TONE_VOLUME = 40; // of ToneGenerator.MAX_VOLUME (100)
+    // Bridges AlarmReceiver returning and begin(); released there, bounded anyway.
+    private static final long START_WAKE_MS = 30_000L;
+    static final String EXTRA_UNTIL = "ring_until";
 
-    private static final int RC_ACTIVITY = 1, RC_STOP_ACTION = 2, RC_BACKUP = 3, RC_REPOST = 4;
+    private static final int RC_ACTIVITY = 1, RC_STOP_ACTION = 2, RC_BACKUP = 3, RC_REPOST = 4,
+            RC_FALLBACK = 5;
 
     /** True only while sound/vibration may actually be active. Set before playing, cleared in teardown. */
     private static volatile boolean ringing;
     /** The live service (main thread only), so stop() can tear down directly. */
     private static RingService instance;
+    /** startForegroundService() calls not yet answered in onStartCommand (main thread only). */
+    private static int unansweredStarts;
+    /** A stop came while a START was unanswered: begin() ends the service right after startForeground. */
+    private static boolean stopPending;
+    /** Held from AlarmReceiver until begin(), so the CPU cannot sleep in between. */
+    private static PowerManager.WakeLock startWakeLock;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable timeout = this::shutdown;
@@ -68,22 +88,58 @@ public final class RingService extends Service {
         @Override public void run() {
             ToneGenerator t = tone;
             if (t == null) return;
-            t.startTone(ToneGenerator.TONE_CDMA_EMERGENCY_RINGBACK, 1000);
-            handler.postDelayed(this, TONE_PERIOD_MS);
+            t.startTone(toneType, 1000);
+            handler.postDelayed(this, tonePeriod);
         }
     };
 
     private MediaPlayer player;
     private ToneGenerator tone;
+    private int toneType;
+    private long tonePeriod;
+    private AudioFocusRequest focus;
     private Vibrator vibrator;
     private PowerManager.WakeLock wakeLock;
 
     // ---- Public API -------------------------------------------------------
 
+    /** Main thread only (AlarmReceiver, RingActivity). Throws if Android refuses the start. */
     public static void start(Context ctx, int alarmId) {
         Intent i = new Intent(ctx, RingService.class).setAction(ACTION_START)
                 .putExtra(Scheduler.EXTRA_ALARM_ID, alarmId);
         ctx.startForegroundService(i);
+        unansweredStarts++;
+        stopPending = false; // an alarm firing after a stop must ring
+    }
+
+    /** True while a START is on its way to the service (RingActivity waits for it). */
+    static boolean isStarting() {
+        return unansweredStarts > 0;
+    }
+
+    /**
+     * Keeps the CPU awake from AlarmReceiver until begin() (at most START_WAKE_MS):
+     * the alarm's own wake lock ends when onReceive returns.
+     */
+    static void holdCpuUntilRinging(Context ctx) {
+        try {
+            if (startWakeLock == null) {
+                startWakeLock = ctx.getApplicationContext().getSystemService(PowerManager.class)
+                        .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SeniorAlert:start");
+                startWakeLock.setReferenceCounted(false);
+            }
+            startWakeLock.acquire(START_WAKE_MS);
+        } catch (RuntimeException e) {
+            Log.e(TAG, "start wake lock", e);
+        }
+    }
+
+    private static void releaseStartWakeLock() {
+        try {
+            if (startWakeLock != null && startWakeLock.isHeld()) startWakeLock.release();
+        } catch (RuntimeException e) {
+            Log.e(TAG, "start wake lock release", e);
+        }
     }
 
     /**
@@ -121,6 +177,13 @@ public final class RingService extends Service {
         // Without a live service nothing of ours can be playing in this process, so the
         // flag must not claim otherwise (e.g. if a teardown step misbehaved).
         ringing = false;
+        if (unansweredStarts > 0) {
+            // A START is on its way: stopping the service now would crash the app
+            // ("did not call startForeground"). Nothing plays yet; begin() answers the
+            // START with startForeground and then shuts down at once.
+            stopPending = true;
+            return;
+        }
         // Belt and braces: stopService never creates the service, and it also covers a
         // service that exists but has not reached onStartCommand yet.
         try { app.stopService(new Intent(app, RingService.class)); } catch (Throwable t) { Log.e(TAG, "stopService", t); }
@@ -142,6 +205,7 @@ public final class RingService extends Service {
             shutdown();
             return START_NOT_STICKY;
         }
+        if (unansweredStarts > 0) unansweredStarts--;
         try {
             begin();
         } catch (Throwable t) {
@@ -153,6 +217,14 @@ public final class RingService extends Service {
     }
 
     private void begin() {
+        try {
+            beginForeground();
+        } finally {
+            releaseStartWakeLock(); // ringing holds its own wake lock from here
+        }
+    }
+
+    private void beginForeground() {
         // Every startForegroundService() must be answered by startForeground(), so
         // this runs on every START, also when we are already ringing.
         try {
@@ -170,11 +242,23 @@ public final class RingService extends Service {
             shutdown();
             return;
         }
+        if (stopPending) {
+            // Stopped while this START was on its way: it is answered, now end.
+            shutdown();
+            return;
+        }
 
         if (!ringing) {
             ringing = true; // before any sound starts; teardown clears it
             acquireWakeLock();
-            startSound();
+            if (inCall()) {
+                // Full alarm volume would blast into the caller's ear: beep quietly in
+                // the earpiece instead. Screen, notification and every stop path stay.
+                startCallTone();
+            } else {
+                requestAudioFocus();
+                startSound();
+            }
             startVibration();
             // The 2-minute limit is a hard cap from the first START. A second alarm
             // firing while ringing joins the current ring; it does not extend it.
@@ -182,7 +266,7 @@ public final class RingService extends Service {
             handler.postDelayed(timeout, RING_MS);
             armBackupStop();
         }
-        launchScreenIfNotificationCannot();
+        launchScreen();
     }
 
     @Override
@@ -200,6 +284,12 @@ public final class RingService extends Service {
     /** Stops everything and ends the service. Idempotent. */
     private void shutdown() {
         teardown();
+        if (unansweredStarts > 0) {
+            // Silent already; ending must wait until begin() answered the START.
+            stopPending = true;
+            return;
+        }
+        stopPending = false;
         try { stopForeground(STOP_FOREGROUND_REMOVE); } catch (Throwable t) { Log.e(TAG, "stopForeground", t); }
         try { stopSelf(); } catch (Throwable t) { Log.e(TAG, "stopSelf", t); }
     }
@@ -228,6 +318,11 @@ public final class RingService extends Service {
         try {
             if (vibrator != null) vibrator.cancel();
         } catch (Throwable t) { Log.e(TAG, "vibrator", t); }
+        try {
+            AudioFocusRequest f = focus;
+            focus = null;
+            if (f != null) getSystemService(AudioManager.class).abandonAudioFocusRequest(f);
+        } catch (Throwable t) { Log.e(TAG, "audio focus", t); }
         try {
             if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
         } catch (Throwable t) { Log.e(TAG, "wakeLock", t); }
@@ -287,12 +382,52 @@ public final class RingService extends Service {
 
     /** Last resort when no ringtone can be played. Volume stays the user's alarm volume. */
     private void startTone() {
+        startTone(AudioManager.STREAM_ALARM, ToneGenerator.MAX_VOLUME,
+                ToneGenerator.TONE_CDMA_EMERGENCY_RINGBACK, TONE_PERIOD_MS);
+    }
+
+    /** During a call: a quiet double beep in the call's own stream, every few seconds. */
+    private void startCallTone() {
+        startTone(AudioManager.STREAM_VOICE_CALL, CALL_TONE_VOLUME,
+                ToneGenerator.TONE_PROP_BEEP2, CALL_TONE_PERIOD_MS);
+    }
+
+    private void startTone(int stream, int volume, int type, long period) {
         if (!ringing || tone != null) return;
         try {
-            tone = new ToneGenerator(AudioManager.STREAM_ALARM, ToneGenerator.MAX_VOLUME);
+            tone = new ToneGenerator(stream, volume);
+            toneType = type;
+            tonePeriod = period;
             handler.post(toneLoop);
         } catch (RuntimeException e) {
             Log.e(TAG, "no tone either", e);
+        }
+    }
+
+    /** A phone or video call is going on (no permission needed for the audio mode). */
+    static boolean inCall(Context ctx) {
+        try {
+            int mode = ctx.getSystemService(AudioManager.class).getMode();
+            return mode == AudioManager.MODE_IN_CALL || mode == AudioManager.MODE_IN_COMMUNICATION;
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
+    private boolean inCall() {
+        return inCall(this);
+    }
+
+    /** Asks music and the like to pause while we ring; we ring whatever the answer. */
+    private void requestAudioFocus() {
+        try {
+            AudioFocusRequest f = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                    .setAudioAttributes(ALARM_AUDIO)
+                    .build();
+            getSystemService(AudioManager.class).requestAudioFocus(f);
+            focus = f;
+        } catch (RuntimeException e) {
+            Log.w(TAG, "audio focus", e);
         }
     }
 
@@ -409,18 +544,63 @@ public final class RingService extends Service {
     }
 
     /**
-     * If notifications are blocked or full-screen intents are denied, the ring
-     * screen would never appear on its own. Try to open it directly; Android may
-     * refuse a background start, in which case MainActivity's banner and the
-     * timeouts remain.
+     * Opens the ring screen directly, besides the full-screen notification. The
+     * notification only opens it on its own while the screen is off or locked; in
+     * use, Android shows a small heads-up instead, and the volume keys only stop
+     * ringing on the ring screen. Also needed when notifications are blocked or
+     * full-screen intents are denied. Android lets a background app start an
+     * activity only with "Display over other apps" (MainActivity asks for it);
+     * otherwise it ignores this, and the heads-up's Turn-off button, the banner and
+     * the timeouts remain. Not during a call: the in-call screen stays in front.
      */
-    private void launchScreenIfNotificationCannot() {
+    private void launchScreen() {
+        openScreen(this);
+    }
+
+    /** Brings the ring screen to the front, unless a call is going on. Never throws. */
+    static void openScreen(Context ctx) {
         try {
-            if (!ringScreenCanAppear(this)) {
-                startActivity(new Intent(this, RingActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-            }
+            if (inCall(ctx)) return;
+            ctx.startActivity(new Intent(ctx, RingActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         } catch (RuntimeException e) {
             Log.w(TAG, "cannot open ring screen", e);
+        }
+    }
+
+    /**
+     * For when Android refused to start this service from the background (API
+     * 31-32 with exact alarms denied: the inexact fallback alarm does not allow a
+     * foreground-service start). Posts the ringing notification on its own, with
+     * the ring screen as its full-screen intent; RingActivity, being in front, may
+     * start the service, and only then does it ring. The service's notification
+     * then replaces this one (same id). Returns false if it cannot appear.
+     */
+    static boolean ringViaScreen(Context ctx, int alarmId) {
+        try {
+            if (!ringScreenCanAppear(ctx)) return false;
+            Intent screen = new Intent(ctx, RingActivity.class)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    .putExtra(Scheduler.EXTRA_ALARM_ID, alarmId)
+                    // A tap later than the ring would have lasted must not start it.
+                    .putExtra(EXTRA_UNTIL, System.currentTimeMillis() + RING_MS);
+            PendingIntent pi = PendingIntent.getActivity(ctx, RC_FALLBACK, screen,
+                    PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+            Notification n = new Notification.Builder(ctx, CHANNEL)
+                    .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                    .setContentTitle(ctx.getString(R.string.notif_ringing))
+                    .setContentText(ctx.getString(R.string.notif_tap_open))
+                    .setCategory(Notification.CATEGORY_ALARM)
+                    .setVisibility(Notification.VISIBILITY_PUBLIC)
+                    .setContentIntent(pi)
+                    .setFullScreenIntent(pi, true)
+                    .setAutoCancel(true)
+                    .setTimeoutAfter(RING_MS)
+                    .build();
+            ctx.getSystemService(NotificationManager.class).notify(NOTIF_ID, n);
+            return true;
+        } catch (RuntimeException e) {
+            Log.e(TAG, "cannot post ring screen", e);
+            return false;
         }
     }
 }

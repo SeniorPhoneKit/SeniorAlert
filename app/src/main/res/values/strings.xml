@@ -35,12 +35,14 @@
     <string name="warn_exact">Exact alarms are not allowed. Alarms may ring late. Tap to allow.</string>
     <string name="warn_full_screen">Full-screen alarms are not allowed. Tap to allow.</string>
     <string name="warn_battery">Battery saving may stop alarms. Tap to allow the app to run.</string>
+    <string name="warn_overlay">While the phone is in use, the alarm screen cannot cover other apps. Tap and allow \"Display over other apps\".</string>
 
     <!-- Ringing -->
     <string name="turn_off">Turn off</string>
     <string name="channel_alarm">Alarm</string>
     <string name="notif_ringing">Alarm</string>
     <string name="notif_tap">Tap to turn off</string>
+    <string name="notif_tap_open">Tap to open</string>
     <string name="lock_with_home">Locks together with the home screen: Settings → Lock there.</string>
 
     <!-- Home-screen widget -->

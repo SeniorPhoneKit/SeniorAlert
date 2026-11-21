@@ -35,12 +35,14 @@
     <string name="warn_exact">Genaue Wecker sind nicht erlaubt. Wecker klingeln eventuell zu spät. Tippen zum Erlauben.</string>
     <string name="warn_full_screen">Vollbild-Wecker sind nicht erlaubt. Tippen zum Erlauben.</string>
     <string name="warn_battery">Der Energiesparmodus kann Wecker verhindern. Tippen, um die App laufen zu lassen.</string>
+    <string name="warn_overlay">Während das Handy benutzt wird, kann der Wecker-Bildschirm andere Apps nicht verdecken. Tippen und „Über anderen Apps einblenden“ erlauben.</string>
 
     <!-- Klingeln -->
     <string name="turn_off">Ausschalten</string>
     <string name="channel_alarm">Wecker</string>
     <string name="notif_ringing">Wecker</string>
     <string name="notif_tap">Tippen zum Ausschalten</string>
+    <string name="notif_tap_open">Tippen zum Öffnen</string>
     <string name="lock_with_home">Wird zusammen mit der Startseite gesperrt: dort Einstellungen → Sperren.</string>
 
     <!-- Startbildschirm-Widget -->

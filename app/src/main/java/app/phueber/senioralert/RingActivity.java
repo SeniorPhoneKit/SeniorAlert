@@ -1,6 +1,7 @@
 package app.phueber.senioralert;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -11,6 +12,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.text.format.DateFormat;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -27,14 +29,32 @@ import java.util.Date;
  * No snooze, nothing else to press by mistake. Works over the lock screen without
  * unlocking. It only shows while RingService rings and closes itself as soon as
  * ringing stops by any other path (timeout, notification, MainActivity).
+ *
+ * Opened by RingService.ringViaScreen (Android refused to start the service from
+ * the background), it starts the service itself once in front, where it may.
+ *
+ * Leaving it (Home) while it rings brings it back after a moment, since the sound
+ * goes on and this is where the big button is; not with the screen off and not
+ * during a call. Back stays ignored. No stop path waits for any of this.
  */
 public final class RingActivity extends Activity {
+    private static final long COME_BACK_MS = 1000L;
+
     private final Handler handler = new Handler(Looper.getMainLooper());
     private TextView clock;
+    /** Alarm id to start ringing for, from ringViaScreen's notification; 0 if none. */
+    private int startId;
+
+    private final Runnable comeBack = () -> {
+        if (!RingService.isRinging()) return;
+        PowerManager pm = getSystemService(PowerManager.class);
+        if (pm != null && !pm.isInteractive()) return; // screen off: do not light it up again
+        RingService.openScreen(getApplicationContext()); // skips a call in progress
+    };
 
     private final Runnable tick = new Runnable() {
         @Override public void run() {
-            if (!RingService.isRinging()) {
+            if (!RingService.isRinging() && !RingService.isStarting()) {
                 finish();
                 return;
             }
@@ -46,8 +66,9 @@ public final class RingActivity extends Activity {
     @Override
     protected void onCreate(Bundle saved) {
         super.onCreate(saved);
+        if (saved == null) startId = startRequest(getIntent());
         // Opened from a stale notification or after ringing already ended: nothing to show.
-        if (!RingService.isRinging()) {
+        if (!RingService.isRinging() && startId == 0) {
             finish();
             return;
         }
@@ -128,9 +149,35 @@ public final class RingActivity extends Activity {
         setContentView(frame);
     }
 
+    /** The alarm id if this intent asks to start ringing and it is not too late; else 0. */
+    private static int startRequest(Intent i) {
+        if (i == null || RingService.isRinging()) return 0;
+        int id = i.getIntExtra(Scheduler.EXTRA_ALARM_ID, 0);
+        long until = i.getLongExtra(RingService.EXTRA_UNTIL, 0);
+        return id > 0 && System.currentTimeMillis() <= until ? id : 0;
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        int id = startRequest(intent);
+        if (id != 0) startId = id;
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
+        handler.removeCallbacks(comeBack);
+        if (startId != 0) {
+            // In front now, so Android allows the foreground-service start.
+            int id = startId;
+            startId = 0;
+            try {
+                RingService.start(this, id);
+            } catch (RuntimeException e) {
+                android.util.Log.e("RingActivity", "could not start ringing", e);
+            }
+        }
         handler.removeCallbacks(tick);
         if (clock != null) tick.run(); // also finishes if ringing ended meanwhile
         else finish();
@@ -140,6 +187,19 @@ public final class RingActivity extends Activity {
     protected void onPause() {
         super.onPause();
         handler.removeCallbacks(tick);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        // Left while ringing (Home, another app): come back. Turning off finishes first.
+        if (!isFinishing() && !isChangingConfigurations()) handler.postDelayed(comeBack, COME_BACK_MS);
+    }
+
+    @Override
+    protected void onDestroy() {
+        handler.removeCallbacks(comeBack);
+        super.onDestroy();
     }
 
     /** Any volume key turns the alarm off: easy to find by touch, and we consume it. */

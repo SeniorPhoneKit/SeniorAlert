@@ -26,14 +26,22 @@ public final class AlarmReceiver extends BroadcastReceiver {
         } catch (RuntimeException e) {
             Log.e(TAG, "could not switch alarm off", e); // still ring now
         }
+        // The alarm's own wake lock ends when onReceive returns; keep the CPU awake
+        // until the service has started ringing (released there, 30 s at most).
+        RingService.holdCpuUntilRinging(ctx);
         try {
             RingService.start(ctx, id);
         } catch (RuntimeException e) {
-            // e.g. ForegroundServiceStartNotAllowedException. Nothing is playing, so the
-            // stop invariant is untouched, but the alarm did not ring. Do not let it look
-            // as if it had: put it back ON (armed for its next occurrence), so the list
-            // stays truthful instead of silently showing OFF.
+            // e.g. ForegroundServiceStartNotAllowedException: on API 31-32 with exact
+            // alarms denied, the inexact fallback alarm does not allow the start. Ring
+            // through the ring screen instead: its full-screen notification is allowed,
+            // and the screen, once in front, starts the service. Nothing plays until
+            // then, so the stop invariant is untouched.
             Log.e(TAG, "could not start ringing", e);
+            if (RingService.ringViaScreen(ctx, id)) return;
+            // Not even the notification can appear: the alarm did not ring. Do not let
+            // it look as if it had: put it back ON (armed for its next occurrence), so
+            // the list stays truthful instead of silently showing OFF.
             try {
                 store.update(a);
                 Scheduler.schedule(ctx, a);

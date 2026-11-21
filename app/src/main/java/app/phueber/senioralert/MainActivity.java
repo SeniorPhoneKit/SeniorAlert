@@ -2,10 +2,8 @@ package app.phueber.senioralert;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.NotificationManager;
-import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -13,6 +11,7 @@ import android.content.res.ColorStateList;
 import android.database.ContentObserver;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.net.Uri;
@@ -29,12 +28,15 @@ import android.text.format.DateFormat;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.TimePicker;
 
 import java.util.Calendar;
 import java.util.List;
@@ -403,11 +405,20 @@ public class MainActivity extends Activity {
             warning(R.string.warn_full_screen, v -> open(new Intent(
                     Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, pkgUri), null));
         }
-        if (locked) return;
-
+        // Shown locked too: without exact alarms (API 31-32) an alarm rings late and
+        // can only start through the ring screen's notification.
         if (!Scheduler.canScheduleExact(this) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             warning(R.string.warn_exact, v -> open(new Intent(
                     Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, pkgUri), null));
+        }
+        if (locked) return;
+
+        // Without it Android shows only a small heads-up while the phone is in use,
+        // instead of the ring screen (see RingService.launchScreen).
+        if (!Settings.canDrawOverlays(this)) {
+            warning(R.string.warn_overlay, v -> open(new Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION, pkgUri),
+                    new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)));
         }
         if (!getSystemService(PowerManager.class).isIgnoringBatteryOptimizations(pkg)) {
             warning(R.string.warn_battery, v -> open(
@@ -481,23 +492,25 @@ public class MainActivity extends Activity {
     private interface TimeChosen { void chosen(int hour, int minute); }
 
     private void pickTime(int hour, int minute, TimeChosen then) {
-        dialog = new TimePickerDialog(this, (picker, h, m) -> {
-            then.chosen(h, m);
+        TimePicker picker = new TimePicker(this);
+        picker.setIs24HourView(DateFormat.is24HourFormat(this));
+        picker.setHour(hour);
+        picker.setMinute(minute);
+        dialog = bigDialog(null, null, picker, getString(R.string.ok), R.color.on_green, v -> {
+            dismissDialog();
+            then.chosen(picker.getHour(), picker.getMinute());
             rebuild();
-        }, hour, minute, DateFormat.is24HourFormat(this));
-        dialog.show();
+        });
     }
 
     private void confirmDelete(Alarm a) {
-        dialog = new AlertDialog.Builder(this)
-                .setMessage(getString(R.string.delete_confirm, format(a)))
-                .setPositiveButton(R.string.yes_delete, (d, w) -> {
+        dialog = bigDialog(getString(R.string.delete_confirm, format(a)), null, null,
+                getString(R.string.yes_delete), R.color.stop_red, v -> {
+                    dismissDialog();
                     store.delete(a.id);
                     Scheduler.cancel(this, a.id);
                     rebuild();
-                })
-                .setNegativeButton(R.string.cancel, null)
-                .show();
+                });
     }
 
     private void showUnlock() {
@@ -506,13 +519,17 @@ public class MainActivity extends Activity {
         TextView error = errorText();
         box.addView(pin);
         box.addView(error);
-        AlertDialog d = new AlertDialog.Builder(this)
-                .setTitle(R.string.unlock_title)
-                .setMessage(R.string.unlock_message)
-                .setView(box)
-                .setPositiveButton(R.string.ok, null)
-                .setNegativeButton(R.string.cancel, null)
-                .show();
+        // A wrong PIN keeps the dialog open.
+        Dialog d = bigDialog(getString(R.string.unlock_title), getString(R.string.unlock_message),
+                box, getString(R.string.ok), R.color.on_green, v -> {
+                    if (store.unlock(pin.getText().toString())) {
+                        dismissDialog();
+                        rebuild();
+                    } else {
+                        pin.setText("");
+                        error.setText(R.string.pin_wrong);
+                    }
+                });
         dialog = d;
 
         // If nobody types for UNLOCK_IDLE_MS, close the prompt and go back to the
@@ -529,17 +546,6 @@ public class MainActivity extends Activity {
             }
         });
         d.setOnDismissListener(x -> handler.removeCallbacks(autoClose));
-
-        // Overridden after show() so a wrong PIN keeps the dialog open.
-        d.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            if (store.unlock(pin.getText().toString())) {
-                d.dismiss();
-                rebuild();
-            } else {
-                pin.setText("");
-                error.setText(R.string.pin_wrong);
-            }
-        });
     }
 
     private void showLock() {
@@ -550,26 +556,87 @@ public class MainActivity extends Activity {
         box.addView(pin);
         box.addView(repeat);
         box.addView(error);
-        AlertDialog d = new AlertDialog.Builder(this)
-                .setTitle(R.string.lock_title)
-                .setMessage(R.string.lock_message)
-                .setView(box)
-                .setPositiveButton(R.string.lock, null)
-                .setNegativeButton(R.string.cancel, null)
-                .show();
-        dialog = d;
-        d.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            String p1 = pin.getText().toString();
-            if (!Pin.isValid(p1)) {
-                error.setText(R.string.pin_invalid);
-            } else if (!p1.equals(repeat.getText().toString())) {
-                error.setText(R.string.pin_mismatch);
-            } else {
-                store.lock(p1);
-                d.dismiss();
-                rebuild();
-            }
-        });
+        dialog = bigDialog(getString(R.string.lock_title), getString(R.string.lock_message),
+                box, getString(R.string.lock), R.color.on_green, v -> {
+                    String p1 = pin.getText().toString();
+                    if (!Pin.isValid(p1)) {
+                        error.setText(R.string.pin_invalid);
+                    } else if (!p1.equals(repeat.getText().toString())) {
+                        error.setText(R.string.pin_mismatch);
+                    } else {
+                        store.lock(p1);
+                        dismissDialog();
+                        rebuild();
+                    }
+                });
+    }
+
+    /**
+     * A big dialog like the other Senior apps' (SeniorPhone, SeniorLauncher): a
+     * white card with a bold title, an optional message and body, and two stacked
+     * full-width buttons, the action on top and Cancel below. onOk decides whether
+     * to close (a wrong PIN keeps it open). Scrolls, so at the largest font the
+     * buttons stay reachable.
+     */
+    private Dialog bigDialog(String title, String message, View body, String okLabel,
+                             int okColorRes, View.OnClickListener onOk) {
+        Dialog d = new Dialog(this);
+        d.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        int p = dp(24);
+        box.setPadding(p, p, p, p);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(getColor(R.color.card));
+        bg.setCornerRadius(dp(24));
+        box.setBackground(bg);
+        if (title != null) {
+            TextView t = text(title, 26);
+            t.setTypeface(Typeface.DEFAULT_BOLD);
+            t.setGravity(Gravity.CENTER);
+            box.addView(t);
+        }
+        if (message != null) {
+            TextView m = text(message, 20);
+            m.setGravity(Gravity.CENTER);
+            LinearLayout.LayoutParams mlp = spaced();
+            mlp.topMargin = dp(8);
+            box.addView(m, mlp);
+        }
+        if (body != null) {
+            LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            blp.gravity = Gravity.CENTER_HORIZONTAL;
+            blp.topMargin = title == null && message == null ? 0 : dp(16);
+            if (!(body instanceof TimePicker)) blp.width = LinearLayout.LayoutParams.MATCH_PARENT;
+            box.addView(body, blp);
+        }
+        Button ok = filled(okLabel, okColorRes, 24, 72);
+        ok.setOnClickListener(onOk);
+        LinearLayout.LayoutParams olp = spaced();
+        olp.topMargin = dp(24);
+        box.addView(ok, olp);
+        Button no = outlined(getString(R.string.cancel), R.color.text_black, 24, 72);
+        no.setOnClickListener(v -> d.dismiss());
+        LinearLayout.LayoutParams nlp = spaced();
+        nlp.topMargin = dp(12);
+        box.addView(no, nlp);
+
+        ScrollView sv = new ScrollView(this);
+        sv.addView(box);
+        d.setContentView(sv);
+        Window w = d.getWindow();
+        if (w != null) {
+            w.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            w.setLayout(getResources().getDisplayMetrics().widthPixels - dp(32),
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            // PIN prompts open with the keyboard up.
+            boolean typing = body != null && !(body instanceof TimePicker);
+            w.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+                    | (typing ? WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE : 0));
+        }
+        d.show();
+        return d;
     }
 
     private void openRingScreen() {
@@ -588,8 +655,6 @@ public class MainActivity extends Activity {
     private LinearLayout dialogBox() {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        int p = dp(24);
-        box.setPadding(p, dp(8), p, 0);
         return box;
     }
 
@@ -599,6 +664,9 @@ public class MainActivity extends Activity {
         e.setHint(hintRes);
         e.setTextSize(TypedValue.COMPLEX_UNIT_SP, 28);
         e.setMinHeight(dp(64));
+        e.setGravity(Gravity.CENTER);
+        e.setTextColor(getColor(R.color.text_black));
+        e.setHintTextColor(getColor(R.color.text_muted));
         return e;
     }
 

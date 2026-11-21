@@ -47,7 +47,10 @@ A big **← Back** button stays at the bottom of the screen and goes to the phon
 home screen, for anyone who does not know the back gesture.
 
 **When an alarm rings.** The phone wakes up, even when it is locked, and shows
-the current time and one huge red **Turn off** button.
+the current time and one huge red **Turn off** button. If someone goes to the
+home screen while it rings, the alarm screen comes back after a moment. During
+a phone call it does not cover the call: it only beeps quietly in the earpiece,
+and **Turn off** is in the notification.
 
 ## Widget on the home screen
 
@@ -92,7 +95,12 @@ anything that still needs to be allowed. Tap each box and allow it:
 - **Notifications.** Without them the alarm screen cannot appear.
 - **Full-screen alarms** (newer Android versions). Lets the alarm screen show
   over the lock screen.
-- **Alarms & reminders** (Android 12). Without it alarms may ring late.
+- **Alarms & reminders** (Android 12). Without it alarms may ring late, and the
+  alarm screen has to come up before the sound starts. This box also shows
+  while locked.
+- **Display over other apps.** Without it, an alarm that rings while the phone
+  is in use shows only a small notification at the top instead of the big
+  alarm screen, and the volume buttons do not stop it.
 - **Battery.** Let the app run without restrictions, so the phone does not stop
   the alarms.
 
@@ -193,6 +201,10 @@ Startbildschirm des Telefons, für alle, die die Zurück-Geste nicht kennen.
 
 **Wenn ein Wecker klingelt.** Das Telefon wacht auf, auch wenn es gesperrt
 ist, und zeigt die Uhrzeit und einen riesigen roten Knopf **Ausschalten**.
+Geht jemand zum Startbildschirm, während er klingelt, kommt der
+Wecker-Bildschirm nach einem Moment zurück. Während eines Telefonats verdeckt
+er das Gespräch nicht: Er piept nur leise im Hörer, und **Ausschalten** steht in
+der Benachrichtigung.
 
 ## Widget auf dem Startbildschirm
 
@@ -241,7 +253,11 @@ erlauben:
 - **Vollbild-Wecker** (neuere Android-Versionen). Damit erscheint der Wecker
   über dem Sperrbildschirm.
 - **Wecker und Erinnerungen** (Android 12). Ohne das klingeln Wecker eventuell
-  zu spät.
+  zu spät, und der Wecker-Bildschirm muss erscheinen, bevor der Ton beginnt.
+  Dieser Kasten erscheint auch gesperrt.
+- **Über anderen Apps einblenden.** Ohne das zeigt ein Wecker, der klingelt,
+  während das Telefon benutzt wird, nur eine kleine Benachrichtigung oben statt
+  des großen Wecker-Bildschirms, und die Lautstärketasten schalten ihn nicht aus.
 - **Akku.** Die App ohne Einschränkungen laufen lassen, damit das Telefon die
   Wecker nicht stoppt.
 

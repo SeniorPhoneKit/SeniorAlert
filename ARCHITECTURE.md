@@ -10,23 +10,23 @@ Plain Java, platform APIs only. Keep this file current with every change.
 | --- | --- |
 | `Alarm` | Immutable one-shot alarm (id > 0, hour, minute, enabled). Pure Java, validated. |
 | `AlarmCodec` | List of alarms to/from one string `id:h:m:e;...`. Skips malformed entries, drops duplicate ids, sorts by time then id. Pure. |
-| `NextTrigger` | Next fire time for hour:minute in a given `TimeZone`, via `Calendar`, so 07:00 stays 07:00 across DST. Used when an alarm is switched ON: the next occurrence of its time; "now" (same minute) means tomorrow. Pure. |
+| `NextTrigger` | Next fire time for hour:minute in a given `TimeZone`, via `Calendar`, so 07:00 stays 07:00 across DST. Used when an alarm is switched ON: the next occurrence of its time; "now" (same minute) means tomorrow. `rearm` decides a re-arm from scratch: an ON alarm last armed for a time at most 30 minutes ago (`LATE_GRACE_MS`) has not rung yet, so it keeps that past time and rings at once instead of tomorrow. Pure. |
 | `Pin` | PIN validation (4-8 ASCII digits), salted SHA-256 hash, constant-time compare, and the fixed reset PIN (`RESET`, same in every Senior app; public on purpose). Pure. |
-| `Store` | All persistent state (alarms, next id, lock flag, PIN salt/hash) in device-protected SharedPreferences. `isLocked()` is the launcher's lock or the own PIN lock. Every alarm write (add/update/delete) redraws the widget. |
+| `Store` | All persistent state (alarms, next id, lock flag, PIN salt/hash, the time each alarm was last armed for) in device-protected SharedPreferences. `isLocked()` is the launcher's lock or the own PIN lock. Every alarm write (add/update/delete) redraws the widget. |
 | `LauncherLock` | Reads SeniorLauncher's lock (`content://app.phueber.seniorlauncher.lock/state`) and lifts it with its PIN (`call(..., "unlock", pin)`). With the launcher installed, the home screen's lock is the lock: the Lock/PIN button gives way to a note, and "Hold to unlock" asks for the home screen's PIN right here. Without it, the PIN lock works as before. Only the alarm list uses it, never the ringing path. |
-| `Scheduler` | Arms/cancels one `AlarmManager.setAlarmClock` per enabled alarm (inexact `setAndAllowWhileIdle` only if exact alarms are denied). `rescheduleAll` re-arms everything from scratch (boot, time change); `ensureArmed` arms only what AlarmManager lost (app opened), so a pending, possibly late alarm is never pushed to tomorrow. |
-| `AlarmReceiver` | Receives a fired alarm: marks it OFF in `Store` first (alarms do not repeat), then starts `RingService`. If Android refuses the start, it puts the alarm back ON (armed for the next occurrence) so a missed ring never shows as OFF. |
+| `Scheduler` | Arms/cancels one `AlarmManager.setAlarmClock` per enabled alarm (inexact `setAndAllowWhileIdle` only if exact alarms are denied). Remembers each armed time in `Store`. `rescheduleAll` re-arms everything from scratch (boot, time or zone change, update, permission change), but an alarm due up to 30 minutes ago that has not rung keeps its time and rings now (`NextTrigger.rearm`); `ensureArmed` arms only what AlarmManager lost (app opened), so a pending, possibly late alarm is never pushed to tomorrow. |
+| `AlarmReceiver` | Receives a fired alarm: marks it OFF in `Store` first (alarms do not repeat), takes a 30-second wake lock (`RingService.holdCpuUntilRinging`, released in `begin`), then starts `RingService`. If Android refuses the start (API 31-32, inexact fallback alarm), it rings through the ring screen instead (`RingService.ringViaScreen`); only if that notification cannot appear either does it put the alarm back ON (armed for the next occurrence), so a missed ring never shows as OFF. |
 | `Automation` | Commands for automation apps (Trigly, Tasker): action and extra names, lenient parsing of the string extras (`time` HH:MM, `id`, `state`), and which alarms a command means (`select`: by id, else all at that time). Pure. |
 | `AutomationReceiver` | Exported receiver for those commands (ALARM_ON/OFF/SET/DELETE, STOP, LOCK, UNLOCK). Calls `Store` and `Scheduler` exactly as the taps in `MainActivity` do; STOP calls `RingService.stop`. |
-| `BootReceiver` | On boot, package replace, time or time-zone change and exact-alarm permission change: `Scheduler.rescheduleAll`, then redraws the widget. |
+| `BootReceiver` | On boot, package replace, time or time-zone change and exact-alarm permission change (sent only when granted; a revoke stops the app and drops its alarms, and the next app start's `ensureArmed` re-arms them inexactly): `Scheduler.rescheduleAll`, then redraws the widget. |
 | `AlarmOverview` | What the widget shows: the next alarm (earliest `NextTrigger` among ON alarms), Today/Tomorrow/None for it, the list order (ON by ring time, then OFF by time of day), the next local midnight, the size rules (wide from 150dp, rows of at least 64dp, at most 8) and how many alarms get a row before the last one becomes "+N more". Pure. |
 | `AlarmWidget` | Home-screen widget (`AppWidgetProvider`, `res/xml/alarm_widget.xml`, layouts `widget_small`, `widget_list`, `widget_row`, `widget_more`, `widget_preview`). Draws `AlarmOverview`; read-only, a tap opens `MainActivity`. See "Widget". |
-| `RingService` | Foreground service (mediaPlayback): sound, vibration, full-screen notification, 2-minute hard cap from the first START (a second alarm joins the ring, it does not extend it), schedules the backup stop (StopReceiver). Sound is the platform's `DEFAULT_ALARM_ALERT_URI` (works before first unlock), ringtone second, a plain tone last. Owns `start`/`stop`/`isRinging`; teardown is total and exception-safe. If `startForeground` fails it shuts down silently rather than ring with no way to stop it. |
-| `RingActivity` | Ringing screen over the lock screen: one big Turn-off button, volume keys also stop. |
+| `RingService` | Foreground service (mediaPlayback): sound, vibration, full-screen notification, 2-minute hard cap from the first START (a second alarm joins the ring, it does not extend it), schedules the backup stop (StopReceiver). Sound is the platform's `DEFAULT_ALARM_ALERT_URI` (works before first unlock), ringtone second, a plain tone last; it asks for transient audio focus. During a call (audio mode IN_CALL / IN_COMMUNICATION) it plays only a quiet double beep on the voice-call stream every 4 s instead, and does not open the ring screen over the call. Owns `start`/`stop`/`isRinging`; teardown is total and exception-safe. If `startForeground` fails it shuts down silently rather than ring with no way to stop it. A stop while a START is unanswered silences at once and lets `begin` end the service right after `startForeground` (see "Stop-path invariant"). Opens `RingActivity` directly when ringing starts (`openScreen`), since a full-screen intent is only a heads-up while the phone is in use; Android allows that only with "Display over other apps". `ringViaScreen` posts the ringing notification alone, for when the service may not start. |
+| `RingActivity` | Ringing screen over the lock screen: one big Turn-off button, volume keys also stop. Left while ringing (Home, SeniorNav's Home), it brings itself back after 1 s, unless the screen is off or a call is going on. Opened from `ringViaScreen`'s notification (extras alarm id and a deadline), it starts `RingService` itself once resumed, where a foreground-service start is allowed. |
 | `OneLineText` | A `TextView` that stays on one line and shrinks its text only as far as needed to fit its width. Used for both clock times, so a very large phone font never wraps a time ("10:30" / "AM"). The platform autosize needs a fixed height; this needs only the width. |
 | `StopReceiver` | Stops ringing: target of the notification action and of the backup AlarmManager stop. |
-| `MainActivity` | Alarm list, add/edit/delete, an OFF | ON switch per alarm (two halves with bells, `ic_bell.xml`/`ic_bell_off.xml`; the active half is filled and `selected`, pressing the active half does nothing), PIN set/lock/unlock (Unlock needs a long press; the PIN prompt closes after 10 s without typing), setup warnings, banner with stop while ringing, and a Back button (left arrow, `ic_arrow_back.xml`) pinned below the scrolling list that opens the home screen (`CATEGORY_HOME`), because many seniors do not know the back gesture. Opens `RingActivity` itself when ringing starts or it is opened while ringing (the system heads-up would otherwise cover the banner). Warnings that affect whether the ring screen can appear (notifications, ringing channel importance, full-screen) also show when locked. |
-| `NavBar` | Whether SeniorNav's Back & Home bar is switched on (the enabled accessibility services list it). While it is, the pinned Back button is hidden, since the bar already has Back and Home; re-checked whenever a screen gets focus. Pure part unit tested. |
+| `MainActivity` | Alarm list, add/edit/delete, an OFF | ON switch per alarm (two halves with bells, `ic_bell.xml`/`ic_bell_off.xml`; the active half is filled and `selected`, pressing the active half does nothing), PIN set/lock/unlock (Unlock needs a long press; the PIN prompt closes after 10 s without typing), setup warnings, banner with stop while ringing, and a Back button (left arrow, `ic_arrow_back.xml`) pinned below the scrolling list that opens the home screen (`CATEGORY_HOME`), because many seniors do not know the back gesture. Opens `RingActivity` itself when ringing starts or it is opened while ringing (the system heads-up would otherwise cover the banner). Warnings that affect whether the ring screen can appear (notifications, ringing channel importance, full-screen) and exact alarms (API 31-32) also show when locked; "Display over other apps" only unlocked. Dialogs (time picker, delete, PIN) are `bigDialog`: a white card with a bold title and stacked full-width OK and Cancel buttons, like SeniorPhone's and SeniorLauncher's `Ui.confirm`. |
+| `NavBar` | Whether SeniorNav's Back & Home bar is on screen: SeniorNav's provider `content://app.phueber.seniornav.bar/state` (column `visible`, observed live while the Back view is attached) if it resolves to SeniorNav, else whether the enabled accessibility services list it. While it is, the pinned Back button is hidden, since the bar already has Back and Home; also re-checked whenever a screen gets focus. Pure part unit tested. |
 
 Pure classes have JVM tests in `app/src/test`; Android-facing classes have none.
 
@@ -34,9 +34,14 @@ Pure classes have JVM tests in `app/src/test`; Android-facing classes have none.
 
 1. `Scheduler` calls `setAlarmClock(NextTrigger.next(...))` with a PendingIntent to `AlarmReceiver`.
 2. `AlarmReceiver` runs at the time. It first switches the alarm OFF, so it rings once and a crash later cannot make it ring again. Disabled or deleted alarms are ignored. Switching it ON again (in `MainActivity`) re-arms it for the next occurrence.
-3. It starts `RingService` in the foreground.
-4. The service posts a full-screen notification, plays the sound and starts the 2-minute timer and the backup stop.
-5. The system launches `RingActivity` from the full-screen intent (or the user taps the notification).
+3. It takes a short wake lock and starts `RingService` in the foreground.
+4. The service posts a full-screen notification, plays the sound (or the quiet in-call beep) and starts the 2-minute timer and the backup stop.
+5. The system launches `RingActivity` from the full-screen intent while the screen is off or locked; in use, the service opens it directly (needs "Display over other apps"), else the heads-up stays and a tap opens it.
+
+On API 31-32 with exact alarms denied, the inexact fallback alarm does not let
+the receiver start a foreground service. Step 3 then posts the same notification
+without the service; `RingActivity`, once in front, starts the service, and only
+then does it ring. While the phone is in use that needs a tap on the heads-up.
 
 ## Stop-path invariant
 
@@ -46,6 +51,16 @@ places: the big button, the volume keys, the notification action, the banner in
 broadcast to `StopReceiver` that does not depend on the service's own timer).
 All paths end in the same stop routine. Do not add any step (PIN, confirmation)
 to any of them.
+
+Android crashes an app that stops a service started with
+`startForegroundService` before it called `startForeground`. So the routine
+counts unanswered STARTs: a stop in that window silences everything at once and
+sets `stopPending`; `begin` answers the START with `startForeground` and then
+shuts down. No stop waits for this; only the end of the service does.
+
+Bringing the ring screen back (Home while ringing, ringing starting while the
+phone is in use) is only an extra way to reach the button; no stop path
+depends on it.
 
 The visible paths depend on the notification. If notifications, the ringing
 channel or full-screen intents are turned off, the sound still plays but only
@@ -159,8 +174,9 @@ a hash and only guards against accidents, not attackers. `allowBackup` is off.
 | `RECEIVE_BOOT_COMPLETED` | Re-arm still-ON alarms after reboot and similar events. |
 | `POST_NOTIFICATIONS` | Ringing notification (API 33+). |
 | `USE_FULL_SCREEN_INTENT` | Show `RingActivity` over the lock screen. |
+| `SYSTEM_ALERT_WINDOW` | "Display over other apps", granted by the helper: lets the service open `RingActivity` while the phone is in use and bring it back after Home. |
 | `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | `RingService` plays the alarm sound. |
-| `WAKE_LOCK` | Keep the device awake while ringing. |
+| `WAKE_LOCK` | Keep the device awake while ringing, and from `AlarmReceiver` until ringing starts. |
 | `VIBRATE` | Vibration while ringing. |
 | `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Let the app ask for a battery exemption so alarms are not delayed. |
 
