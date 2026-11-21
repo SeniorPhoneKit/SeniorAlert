@@ -44,8 +44,13 @@ public final class Store {
 
     /** Adds a new, enabled alarm and returns it. Caller must schedule it. */
     public synchronized Alarm add(int hour, int minute) {
+        return add(hour, minute, true);
+    }
+
+    /** Adds a new alarm, ON or OFF, and returns it. Caller must schedule it if ON. */
+    public synchronized Alarm add(int hour, int minute, boolean enabled) {
         int id = prefs.getInt(K_NEXT_ID, 1);
-        Alarm a = new Alarm(id, hour, minute, true);
+        Alarm a = new Alarm(id, hour, minute, enabled);
         List<Alarm> list = alarms();
         list.add(a);
         AlarmCodec.sort(list);

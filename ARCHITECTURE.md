@@ -16,6 +16,8 @@ Plain Java, platform APIs only. Keep this file current with every change.
 | `LauncherLock` | Reads SeniorLauncher's lock (`content://app.phueber.seniorlauncher.lock/state`) and lifts it with its PIN (`call(..., "unlock", pin)`). With the launcher installed, the home screen's lock is the lock: the Lock/PIN button gives way to a note, and "Hold to unlock" asks for the home screen's PIN right here. Without it, the PIN lock works as before. Only the alarm list uses it, never the ringing path. |
 | `Scheduler` | Arms/cancels one `AlarmManager.setAlarmClock` per enabled alarm (inexact `setAndAllowWhileIdle` only if exact alarms are denied). `rescheduleAll` re-arms everything from scratch (boot, time change); `ensureArmed` arms only what AlarmManager lost (app opened), so a pending, possibly late alarm is never pushed to tomorrow. |
 | `AlarmReceiver` | Receives a fired alarm: marks it OFF in `Store` first (alarms do not repeat), then starts `RingService`. If Android refuses the start, it puts the alarm back ON (armed for the next occurrence) so a missed ring never shows as OFF. |
+| `Automation` | Commands for automation apps (Trigly, Tasker): action and extra names, lenient parsing of the string extras (`time` HH:MM, `id`, `state`), and which alarms a command means (`select`: by id, else all at that time). Pure. |
+| `AutomationReceiver` | Exported receiver for those commands (ALARM_ON/OFF/SET/DELETE, STOP, LOCK, UNLOCK). Calls `Store` and `Scheduler` exactly as the taps in `MainActivity` do; STOP calls `RingService.stop`. |
 | `BootReceiver` | On boot, package replace, time or time-zone change and exact-alarm permission change: `Scheduler.rescheduleAll`. |
 | `RingService` | Foreground service (mediaPlayback): sound, vibration, full-screen notification, 2-minute hard cap from the first START (a second alarm joins the ring, it does not extend it), schedules the backup stop (StopReceiver). Sound is the platform's `DEFAULT_ALARM_ALERT_URI` (works before first unlock), ringtone second, a plain tone last. Owns `start`/`stop`/`isRinging`; teardown is total and exception-safe. If `startForeground` fails it shuts down silently rather than ring with no way to stop it. |
 | `RingActivity` | Ringing screen over the lock screen: one big Turn-off button, volume keys also stop. |
@@ -46,6 +48,30 @@ The visible paths depend on the notification. If notifications, the ringing
 channel or full-screen intents are turned off, the sound still plays but only
 the banner (after unlocking the phone) and the time limit remain. That is why
 those settings are warned about even when the app is locked.
+
+## Automation
+
+Automation apps (Trigly, Tasker) can only send an action plus a few string
+extras, so `AutomationReceiver` takes explicit broadcasts (no screen needs to
+appear, and broadcasts have no background-start limit) and `Automation` parses
+every extra leniently; malformed commands are ignored with a log line, nothing
+is reported back. Each command repeats the matching tap: Store first, then
+Scheduler, and an alarm already in the wanted state is left alone, because
+re-arming would push a late pending alarm to tomorrow (see `ensureArmed`).
+`ALARM_SET` switches the alarms at a time or adds one, so it never makes a
+duplicate. The open list picks up outside changes through its 1-second poll
+(the alarm list and the own lock flag), the same way it notices `AlarmReceiver`.
+
+The receiver runs on the main thread, like `AlarmReceiver` and the list, so
+Store's read-modify-write is never interleaved with a tap. It is
+`directBootAware` because Store is device-protected.
+
+The lock is a guard rail, not security: automation acts for the helper, so
+setup commands work while locked, and no command needs a permission the
+sender lacks. `LOCK` is ignored when SeniorLauncher is present (its lock is the
+one lock; a second own PIN could disagree with it). `UNLOCK` goes through
+`Store.unlock`, so the launcher's PIN or the reset PIN works. `STOP` ends in the
+same stop routine as every other stop path and adds no step to them.
 
 ## Look
 

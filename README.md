@@ -95,6 +95,28 @@ Then:
 Enter the reset PIN **506614**. It opens the lock whatever PIN was chosen,
 in every Senior app, and the alarms stay.
 
+## Automation (Trigly, Tasker, …)
+
+Automation apps can control the alarms with broadcasts. Send mode: **broadcast**,
+package `app.phueber.senioralert`. All extras are text. Times are 24-hour
+`HH:MM` (`7:30` works too). An alarm is named by `time` (every alarm at that
+time) or by `id`. Each command does exactly what the same tap in the app does,
+also while the app is locked. Malformed commands are ignored.
+
+| Action (`app.phueber.senioralert.action.…`) | Extras | What it does |
+| --- | --- | --- |
+| `ALARM_ON` | `time` or `id` | Switches the alarm ON, armed for its next time. |
+| `ALARM_OFF` | `time` or `id` | Switches the alarm OFF. |
+| `ALARM_SET` | `time`, optional `state` (`on`/`off`, default `on`) | Switches the alarm at that time ON (or OFF); adds one if there is none, so there are never two. |
+| `ALARM_DELETE` | `time` or `id` | Deletes the alarm. |
+| `STOP` | – | Stops a ringing alarm, like **Turn off**. |
+| `LOCK` | `pin` (4–8 digits) | Locks with this PIN. With SeniorLauncher installed it does nothing; lock the home screen instead. |
+| `UNLOCK` | `pin` | Unlocks with the PIN (or the reset PIN), like **Hold to unlock**. |
+
+Example in Trigly: action *Fire intent*, send mode *Broadcast*, action
+`app.phueber.senioralert.action.ALARM_SET`, package `app.phueber.senioralert`,
+extra `time` = `07:30`. This makes sure a 07:30 alarm is ON.
+
 ## Privacy
 
 The app has no internet access at all (it does not even ask for it), no
@@ -206,6 +228,29 @@ Danach:
 
 Die Reset-PIN **506614** eingeben. Sie öffnet die Sperre unabhängig von der
 gewählten PIN, in jeder Senior-App, und die Wecker bleiben.
+
+## Automatisierung (Trigly, Tasker, …)
+
+Automatisierungs-Apps können die Wecker per Broadcast steuern. Sendeart:
+**Broadcast**, Paket `app.phueber.senioralert`. Alle Extras sind Text. Uhrzeiten
+im 24-Stunden-Format `HH:MM` (`7:30` geht auch). Ein Wecker wird über `time`
+(alle Wecker zu dieser Uhrzeit) oder `id` bestimmt. Jeder Befehl tut genau das,
+was derselbe Tipp in der App tut, auch wenn die App gesperrt ist. Fehlerhafte
+Befehle werden ignoriert.
+
+| Aktion (`app.phueber.senioralert.action.…`) | Extras | Was passiert |
+| --- | --- | --- |
+| `ALARM_ON` | `time` oder `id` | Schaltet den Wecker AN, für seine nächste Uhrzeit. |
+| `ALARM_OFF` | `time` oder `id` | Schaltet den Wecker AUS. |
+| `ALARM_SET` | `time`, optional `state` (`on`/`off`, Standard `on`) | Schaltet den Wecker zu dieser Uhrzeit AN (oder AUS); gibt es keinen, wird einer angelegt, also nie zwei. |
+| `ALARM_DELETE` | `time` oder `id` | Löscht den Wecker. |
+| `STOP` | – | Stoppt einen klingelnden Wecker, wie **Ausschalten**. |
+| `LOCK` | `pin` (4–8 Ziffern) | Sperrt mit dieser PIN. Ist SeniorLauncher installiert, passiert nichts; dann die Startseite sperren. |
+| `UNLOCK` | `pin` | Entsperrt mit der PIN (oder der Reset-PIN), wie **Zum Entsperren gedrückt halten**. |
+
+Beispiel in Trigly: Aktion *Intent senden*, Sendeart *Broadcast*, Aktion
+`app.phueber.senioralert.action.ALARM_SET`, Paket `app.phueber.senioralert`,
+Extra `time` = `07:30`. Damit ist ein Wecker um 07:30 sicher AN.
 
 ## Datenschutz
 

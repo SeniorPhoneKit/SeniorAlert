@@ -74,6 +74,25 @@
             android:directBootAware="true"
             android:exported="false" />
 
+        <!-- Commands from automation apps (Trigly, Tasker, ...): explicit broadcasts
+             with string extras, see Automation. Exported on purpose; nothing here
+             needs a permission the sender would lack. -->
+        <receiver
+            android:name=".AutomationReceiver"
+            android:directBootAware="true"
+            android:exported="true"
+            tools:ignore="ExportedReceiver">
+            <intent-filter>
+                <action android:name="app.phueber.senioralert.action.ALARM_ON" />
+                <action android:name="app.phueber.senioralert.action.ALARM_OFF" />
+                <action android:name="app.phueber.senioralert.action.ALARM_SET" />
+                <action android:name="app.phueber.senioralert.action.ALARM_DELETE" />
+                <action android:name="app.phueber.senioralert.action.STOP" />
+                <action android:name="app.phueber.senioralert.action.LOCK" />
+                <action android:name="app.phueber.senioralert.action.UNLOCK" />
+            </intent-filter>
+        </receiver>
+
         <receiver
             android:name=".BootReceiver"
             android:directBootAware="true"

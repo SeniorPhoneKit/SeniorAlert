@@ -54,6 +54,7 @@ public class MainActivity extends Activity {
     private LinearLayout root;
     private boolean shownRinging;
     private String shownAlarms; // encoded list last rendered, to notice outside changes
+    private boolean shownOwnLock; // own lock as last rendered; automation can flip it
     private Dialog dialog; // the one open dialog, so a starting alarm can close it
 
     // Polls so the stop banner appears/disappears on its own, and so a row flips to
@@ -69,8 +70,14 @@ public class MainActivity extends Activity {
             // notification would otherwise cover the banner at the top, and a tap
             // meant for the banner would land on the notification instead.
             if (ringing && !shownRinging) openRingScreen();
-            if (ringing != shownRinging
-                    || !AlarmCodec.encode(store.alarms()).equals(shownAlarms)) rebuild();
+            // The list also changes from outside: AlarmReceiver, and automation apps
+            // (AutomationReceiver). The launcher's lock has its own observer.
+            if (ringing != shownRinging || store.isOwnLocked() != shownOwnLock
+                    || !AlarmCodec.encode(store.alarms()).equals(shownAlarms)) {
+                // An open PIN or time dialog would act on the old state.
+                if (store.isOwnLocked() != shownOwnLock) dismissDialog();
+                rebuild();
+            }
             handler.postDelayed(this, 1000);
         }
     };
@@ -196,6 +203,7 @@ public class MainActivity extends Activity {
     private void rebuild() {
         root.removeAllViews();
         boolean locked = store.isLocked();
+        shownOwnLock = store.isOwnLocked();
 
         shownRinging = RingService.isRinging();
         if (shownRinging) {
