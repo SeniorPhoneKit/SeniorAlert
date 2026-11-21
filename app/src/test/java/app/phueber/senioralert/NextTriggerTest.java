@@ -215,4 +215,37 @@ public class NextTriggerTest {
             }
         }
     }
+
+    // ---- rearm: a re-arm must not push a late, not yet rung alarm to tomorrow
+
+    private static final long MIN = 60_000L;
+    private static final long NOW = 1_800_000_000_000L;
+    private static final long NEXT = NOW + 23 * 60 * MIN;
+
+    @Test public void rearmLateWithinGraceRingsAtOnce() {
+        assertEquals(NOW - 5 * MIN, NextTrigger.rearm(NOW - 5 * MIN, NEXT, NOW));
+    }
+
+    @Test public void rearmExactlyAtGraceStillRings() {
+        long armed = NOW - NextTrigger.LATE_GRACE_MS;
+        assertEquals(armed, NextTrigger.rearm(armed, NEXT, NOW));
+    }
+
+    @Test public void rearmTooLateGoesToNext() {
+        assertEquals(NEXT, NextTrigger.rearm(NOW - NextTrigger.LATE_GRACE_MS - 1, NEXT, NOW));
+        assertEquals(NEXT, NextTrigger.rearm(NOW - 24 * 60 * MIN, NEXT, NOW));
+    }
+
+    @Test public void rearmFutureGoesToNext() {
+        // Still ahead (e.g. the clock went back): the recomputed time is right.
+        assertEquals(NEXT, NextTrigger.rearm(NOW + MIN, NEXT, NOW));
+    }
+
+    @Test public void rearmUnknownGoesToNext() {
+        assertEquals(NEXT, NextTrigger.rearm(0, NEXT, NOW));
+    }
+
+    @Test public void rearmDueRightNowRings() {
+        assertEquals(NOW, NextTrigger.rearm(NOW, NEXT, NOW));
+    }
 }

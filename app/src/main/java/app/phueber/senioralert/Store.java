@@ -25,6 +25,7 @@ public final class Store {
     private static final String K_LOCKED = "locked";
     private static final String K_SALT = "pin_salt";
     private static final String K_HASH = "pin_hash";
+    private static final String K_ARMED_PREFIX = "armed_"; // + id: last armed trigger time
 
     private final SharedPreferences prefs;
     private final Context app;
@@ -77,8 +78,18 @@ public final class Store {
     public synchronized void delete(int id) {
         List<Alarm> list = alarms();
         list.removeIf(a -> a.id == id);
-        prefs.edit().putString(K_ALARMS, AlarmCodec.encode(list)).commit();
+        prefs.edit().putString(K_ALARMS, AlarmCodec.encode(list)).remove(K_ARMED_PREFIX + id).commit();
         AlarmWidget.updateAll(app);
+    }
+
+    /** Remembers when the alarm was last armed for (Scheduler), for re-arming later. */
+    public synchronized void setArmedAt(int id, long at) {
+        prefs.edit().putLong(K_ARMED_PREFIX + id, at).commit();
+    }
+
+    /** The time the alarm was last armed for, 0 if unknown. */
+    public synchronized long armedAt(int id) {
+        return prefs.getLong(K_ARMED_PREFIX + id, 0L);
     }
 
     /**

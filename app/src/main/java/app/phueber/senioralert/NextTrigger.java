@@ -16,6 +16,23 @@ import java.util.TimeZone;
 public final class NextTrigger {
     private NextTrigger() {}
 
+    /** How late a pending, not yet rung alarm may be and still ring after a re-arm. */
+    public static final long LATE_GRACE_MS = 30 * 60 * 1000L;
+
+    /**
+     * When to arm an ON alarm again from scratch (boot, time or zone change, app
+     * update, permission change). {@code armedAt} is the time it was last armed for
+     * (0 if unknown), {@code next} its next occurrence. An alarm that is still ON
+     * has not rung yet, so if it was due at most LATE_GRACE_MS ago (e.g. the clock
+     * jumped past it, or an inexact fallback alarm is a few minutes late), it is
+     * armed for that past time and rings at once instead of being pushed to tomorrow.
+     */
+    public static long rearm(long armedAt, long next, long nowMillis) {
+        boolean lateButFresh = armedAt > 0 && armedAt <= nowMillis
+                && nowMillis - armedAt <= LATE_GRACE_MS;
+        return lateButFresh ? armedAt : next;
+    }
+
     public static long next(int hour, int minute, long nowMillis, TimeZone tz) {
         Calendar c = Calendar.getInstance(tz);
         c.setTimeInMillis(nowMillis);

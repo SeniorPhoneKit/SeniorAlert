@@ -38,9 +38,19 @@ public final class Scheduler {
         else cancel(ctx, a.id);
     }
 
+    /** Arms the alarm for the next occurrence of its time. */
     public static void schedule(Context ctx, Alarm a) {
+        scheduleAt(ctx, a, nextOf(a, System.currentTimeMillis()));
+    }
+
+    private static long nextOf(Alarm a, long now) {
+        return NextTrigger.next(a.hour, a.minute, now, TimeZone.getDefault());
+    }
+
+    /** Arms the alarm for {@code at} (a past time fires at once) and remembers it. */
+    private static void scheduleAt(Context ctx, Alarm a, long at) {
+        new Store(ctx).setArmedAt(a.id, at);
         AlarmManager am = ctx.getSystemService(AlarmManager.class);
-        long at = NextTrigger.next(a.hour, a.minute, System.currentTimeMillis(), TimeZone.getDefault());
         PendingIntent fire = fireIntent(ctx, a.id);
         if (canScheduleExact(ctx)) {
             PendingIntent show = PendingIntent.getActivity(ctx, 0,
@@ -63,9 +73,16 @@ public final class Scheduler {
     /**
      * Re-arms every enabled alarm from scratch. For boot, time or time-zone change,
      * app update and permission change, where the old trigger time is gone or wrong.
+     * An alarm that was due a few minutes ago and has not rung yet (it is still ON)
+     * rings now rather than tomorrow (NextTrigger.rearm), as ensureArmed intends.
      */
     public static void rescheduleAll(Context ctx) {
-        for (Alarm a : new Store(ctx).alarms()) apply(ctx, a);
+        Store store = new Store(ctx);
+        long now = System.currentTimeMillis();
+        for (Alarm a : store.alarms()) {
+            if (!a.enabled) cancel(ctx, a.id);
+            else scheduleAt(ctx, a, NextTrigger.rearm(store.armedAt(a.id), nextOf(a, now), now));
+        }
     }
 
     /**
