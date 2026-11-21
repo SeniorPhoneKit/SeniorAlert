@@ -17,4 +17,15 @@ public class NavBarTest {
         assertFalse(NavBar.listed("com.other/.A"));
         assertFalse(NavBar.listed("app.phueber.seniornavx/.Fake"));
     }
+
+    @Test public void providerAnswerWins() {
+        String on = "app.phueber.seniornav/.NavBarService";
+        assertFalse(NavBar.decide(0, on)); // paused or not running: our Back shows
+        assertTrue(NavBar.decide(1, null));
+    }
+
+    @Test public void withoutProviderTheSettingDecides() {
+        assertTrue(NavBar.decide(NavBar.UNKNOWN, "app.phueber.seniornav/.NavBarService"));
+        assertFalse(NavBar.decide(NavBar.UNKNOWN, "com.other/.A"));
+    }
 }
