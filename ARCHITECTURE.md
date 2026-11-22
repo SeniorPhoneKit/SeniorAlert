@@ -91,6 +91,31 @@ one lock; a second own PIN could disagree with it). `UNLOCK` goes through
 `Store.unlock`, so the launcher's PIN or the reset PIN works. `STOP` ends in the
 same stop routine as every other stop path and adds no step to them.
 
+### Open to every app, by decision
+
+The receiver is exported with no permission and no check of the sender, on
+purpose: Trigly, Tasker and the like must work without a pairing step, and
+Android gives a receiver no reliable way to tell a wanted sender from another
+app. So any installed app can send every command. What such an app can do:
+
+- switch any alarm ON or OFF, add alarms, or delete them all, so a wake-up
+  alarm silently does not ring (the worst case; the list shows it);
+- stop a ringing alarm (`STOP`);
+- set the own PIN lock (`LOCK`, only without SeniorLauncher; the public reset
+  PIN lifts it), or lift a lock with a PIN it knows, including the reset PIN.
+
+What it cannot do: read anything back (no command answers), make an alarm ring
+longer than the 2-minute cap or without every stop path, or reach anything
+outside the alarm list and the lock. What bounds the damage:
+
+- at most `Alarm.MAX_COUNT` (50) alarms; `Store.add` refuses more, so the list
+  never gets near AlarmManager's ~500 alarms per app, past which arming throws;
+- `Scheduler.ensureArmed` and `rescheduleAll` catch a failure per alarm, so one
+  alarm that cannot be armed neither crashes the app on open nor leaves the
+  other alarms unarmed;
+- every command is a few preference writes on the main thread, and malformed
+  extras are ignored, so a flood of broadcasts costs time but corrupts nothing.
+
 ## Widget
 
 `AlarmWidget` shows the next alarm in one cell (bell, time, Today/Tomorrow/No
