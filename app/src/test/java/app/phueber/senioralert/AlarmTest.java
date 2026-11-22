@@ -96,4 +96,17 @@ public class AlarmTest {
         assertNotEquals(a, null);
         assertNotEquals(a, "1:7:0:1");
     }
+
+    @Test public void listFullAtMaxCount() {
+        assertFalse(Alarm.listFull(0));
+        assertFalse(Alarm.listFull(Alarm.MAX_COUNT - 1));
+        assertTrue(Alarm.listFull(Alarm.MAX_COUNT));
+        assertTrue(Alarm.listFull(Alarm.MAX_COUNT + 1)); // a list from before the cap stays full
+    }
+
+    @Test public void maxCountStaysFarBelowAlarmManagerLimit() {
+        // AlarmManager throws past ~500 alarms per app; the app also arms a backup
+        // stop and the widget's midnight refresh.
+        assertTrue(Alarm.MAX_COUNT > 0 && Alarm.MAX_COUNT + 10 < 500);
+    }
 }

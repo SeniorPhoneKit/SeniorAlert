@@ -263,11 +263,23 @@ public class MainActivity extends Activity {
             });
             root.addView(unlock, lp);
         } else {
-            Button add = filled(getString(R.string.add_alarm), R.color.on_green, 26, 80);
-            add.setOnClickListener(v -> pickTime(12, 0, (h, m) -> Scheduler.schedule(this, store.add(h, m))));
             LinearLayout.LayoutParams alp = spaced();
             alp.topMargin = dp(24);
-            root.addView(add, alp);
+            if (Alarm.listFull(alarms.size())) {
+                // No Add button that would only fail: say why, and what to do.
+                TextView full = text(getString(R.string.alarms_full, Alarm.MAX_COUNT), 20);
+                full.setGravity(Gravity.CENTER);
+                root.addView(full, alp);
+            } else {
+                Button add = filled(getString(R.string.add_alarm), R.color.on_green, 26, 80);
+                add.setOnClickListener(v -> pickTime(12, 0, (h, m) -> {
+                    // Null if automation filled the list while the picker was open;
+                    // rebuild() then shows the note instead of the button.
+                    Alarm a = store.add(h, m);
+                    if (a != null) Scheduler.schedule(this, a);
+                }));
+                root.addView(add, alp);
+            }
             if (LauncherLock.present(this)) {
                 // One lock for the whole phone: set on the home screen, not here.
                 TextView note = text(getString(R.string.lock_with_home), 18);
