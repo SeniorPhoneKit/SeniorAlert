@@ -99,6 +99,7 @@ public final class AutomationReceiver extends BroadcastReceiver {
             return;
         }
         Alarm a = store.add(at / 60, at % 60, on);
-        if (on) Scheduler.schedule(ctx, a);
+        if (a == null) Log.w(TAG, "ALARM_SET ignored: already " + Alarm.MAX_COUNT + " alarms");
+        else if (on) Scheduler.schedule(ctx, a);
     }
 }

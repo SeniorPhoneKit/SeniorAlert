@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
+import android.util.Log;
 
 import java.util.TimeZone;
 
@@ -23,6 +24,7 @@ import java.util.TimeZone;
 public final class Scheduler {
     public static final String ACTION_FIRE = "app.phueber.senioralert.FIRE";
     public static final String EXTRA_ALARM_ID = "alarm_id";
+    private static final String TAG = "Scheduler";
 
     private Scheduler() {}
 
@@ -80,8 +82,14 @@ public final class Scheduler {
         Store store = new Store(ctx);
         long now = System.currentTimeMillis();
         for (Alarm a : store.alarms()) {
-            if (!a.enabled) cancel(ctx, a.id);
-            else scheduleAt(ctx, a, NextTrigger.rearm(store.armedAt(a.id), nextOf(a, now), now));
+            // One alarm that cannot be armed (e.g. AlarmManager's per-app limit)
+            // must not leave the ones after it unarmed.
+            try {
+                if (!a.enabled) cancel(ctx, a.id);
+                else scheduleAt(ctx, a, NextTrigger.rearm(store.armedAt(a.id), nextOf(a, now), now));
+            } catch (RuntimeException e) {
+                Log.e(TAG, "could not re-arm " + a, e);
+            }
         }
     }
 
@@ -90,10 +98,16 @@ public final class Scheduler {
      * force-stop), leaving pending ones untouched. Used when the app opens: re-arming
      * a pending alarm would recompute its time, and an inexact fallback alarm that is
      * a few minutes late would then be pushed to tomorrow and silently skipped today.
+     * Never throws: it runs on every app open, and one alarm that cannot be armed
+     * must neither crash the app nor keep the others from being armed.
      */
     public static void ensureArmed(Context ctx) {
         for (Alarm a : new Store(ctx).alarms()) {
-            if (a.enabled && existingFireIntent(ctx, a.id) == null) schedule(ctx, a);
+            try {
+                if (a.enabled && existingFireIntent(ctx, a.id) == null) schedule(ctx, a);
+            } catch (RuntimeException e) {
+                Log.e(TAG, "could not arm " + a, e);
+            }
         }
     }
 

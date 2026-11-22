@@ -39,7 +39,8 @@ internet, no ads.
 two halves, **OFF** and **ON**, each with a bell (crossed out for OFF). The
 current choice is filled in: green for ON, dark grey for OFF. To change it,
 press the word you want. Unlocked, each alarm also has **Change time** and
-**Delete**, and at the bottom there are **Add alarm** and **Lock**. Locked,
+**Delete**, and at the bottom there are **Add alarm** (up to 50 alarms) and
+**Lock**. Locked,
 only the times and the OFF | ON switches are left, plus a small **Hold to unlock**
 at the very bottom. It only reacts when held down, so it cannot be opened by a
 stray tap. The PIN prompt closes by itself if nothing is typed for 10 seconds.
@@ -129,7 +130,7 @@ also while the app is locked. Malformed commands are ignored.
 | --- | --- | --- |
 | `ALARM_ON` | `time` or `id` | Switches the alarm ON, armed for its next time. |
 | `ALARM_OFF` | `time` or `id` | Switches the alarm OFF. |
-| `ALARM_SET` | `time`, optional `state` (`on`/`off`, default `on`) | Switches the alarm at that time ON (or OFF); adds one if there is none, so there are never two. |
+| `ALARM_SET` | `time`, optional `state` (`on`/`off`, default `on`) | Switches the alarm at that time ON (or OFF); adds one if there is none, so there are never two. At most 50 alarms: when there are 50, nothing is added. |
 | `ALARM_DELETE` | `time` or `id` | Deletes the alarm. |
 | `STOP` | – | Stops a ringing alarm, like **Turn off**. |
 | `LOCK` | `pin` (4–8 digits) | Locks with this PIN. With SeniorLauncher installed it does nothing; lock the home screen instead. |
@@ -191,8 +192,8 @@ Telefon steht dort AN, AUS, Ausschalten).
 Schalter mit zwei Hälften, **AUS** und **AN**, jeweils mit einer Glocke
 (durchgestrichen bei AUS). Die aktuelle Wahl ist ausgefüllt: grün für AN,
 dunkelgrau für AUS. Zum Ändern drückt man das Wort, das man möchte. Entsperrt hat jeder Wecker zusätzlich
-**Zeit ändern** und **Löschen**, unten stehen **Wecker hinzufügen** und
-**Sperren**. Gesperrt bleiben nur die Zeiten und die AUS | AN-Schalter, ganz unten
+**Zeit ändern** und **Löschen**, unten stehen **Wecker hinzufügen** (bis zu
+50 Wecker) und **Sperren**. Gesperrt bleiben nur die Zeiten und die AUS | AN-Schalter, ganz unten
 ein kleines **Zum Entsperren gedrückt halten**. Es reagiert nur, wenn man es
 gedrückt hält, also nicht auf versehentliches Antippen. Die PIN-Abfrage
 schließt sich von selbst, wenn 10 Sekunden lang nichts eingegeben wird.
@@ -287,7 +288,7 @@ Befehle werden ignoriert.
 | --- | --- | --- |
 | `ALARM_ON` | `time` oder `id` | Schaltet den Wecker AN, für seine nächste Uhrzeit. |
 | `ALARM_OFF` | `time` oder `id` | Schaltet den Wecker AUS. |
-| `ALARM_SET` | `time`, optional `state` (`on`/`off`, Standard `on`) | Schaltet den Wecker zu dieser Uhrzeit AN (oder AUS); gibt es keinen, wird einer angelegt, also nie zwei. |
+| `ALARM_SET` | `time`, optional `state` (`on`/`off`, Standard `on`) | Schaltet den Wecker zu dieser Uhrzeit AN (oder AUS); gibt es keinen, wird einer angelegt, also nie zwei. Höchstens 50 Wecker: Gibt es schon 50, wird keiner angelegt. |
 | `ALARM_DELETE` | `time` oder `id` | Löscht den Wecker. |
 | `STOP` | – | Stoppt einen klingelnden Wecker, wie **Ausschalten**. |
 | `LOCK` | `pin` (4–8 Ziffern) | Sperrt mit dieser PIN. Ist SeniorLauncher installiert, passiert nichts; dann die Startseite sperren. |

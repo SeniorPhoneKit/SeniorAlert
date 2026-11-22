@@ -8,6 +8,7 @@
     <string name="state_on">AN</string>
     <string name="state_off">AUS</string>
     <string name="add_alarm">Wecker hinzufügen</string>
+    <string name="alarms_full">Mehr Wecker sind nicht möglich (höchstens %1$d). Für einen neuen Wecker löschen Sie bitte einen, den Sie nicht mehr brauchen.</string>
     <string name="change_time">Zeit ändern</string>
     <string name="delete">Löschen</string>
     <string name="lock">Sperren</string>

@@ -7,6 +7,14 @@ package app.phueber.senioralert;
  * someone switches it ON again.
  */
 public final class Alarm {
+    /**
+     * Most alarms the list holds. Far more than anyone needs, and far below
+     * AlarmManager's limit of about 500 alarms per app, past which arming throws.
+     * Bounds what a bug or a hostile app (the automation receiver is open to any
+     * sender) can add.
+     */
+    public static final int MAX_COUNT = 50;
+
     public final int id;
     public final int hour;    // 0..23
     public final int minute;  // 0..59
@@ -20,6 +28,11 @@ public final class Alarm {
         this.hour = hour;
         this.minute = minute;
         this.enabled = enabled;
+    }
+
+    /** Whether a list of {@code count} alarms has no room for another one. */
+    public static boolean listFull(int count) {
+        return count >= MAX_COUNT;
     }
 
     public Alarm withEnabled(boolean e) {

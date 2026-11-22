@@ -8,6 +8,7 @@
     <string name="state_on">ON</string>
     <string name="state_off">OFF</string>
     <string name="add_alarm">Add alarm</string>
+    <string name="alarms_full">This is the most alarms the app can hold (%1$d). To add a new one, delete an alarm you no longer need.</string>
     <string name="change_time">Change time</string>
     <string name="delete">Delete</string>
     <string name="lock">Lock</string>
