@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Calm, high-contrast platform theme: dark text on a warm off-white page, white
-         cards. The system bars take the page colour with dark icons, so the status bar
+    <!-- Calm, high-contrast platform theme, the family's Light look (as in
+         SeniorLauncher): deep navy text on a cool blue-grey page, white cards. The system bars take the page colour with dark icons, so the status bar
          stays readable. fitsSystemWindows keeps content clear of the status and
          gesture bars (Android 15 draws apps edge to edge). -->
     <style name="AppTheme.Base" parent="android:Theme.Material.Light.NoActionBar">
@@ -23,16 +23,21 @@
     </style>
 
     <!-- Colours shared by MainActivity and RingActivity. -->
-    <color name="page">#F4F2ED</color>
+    <color name="page">#E8EDF4</color>
     <color name="card">#FFFFFF</color>
-    <color name="text_black">#1C1B19</color>
-    <color name="text_muted">#77736B</color>
+    <color name="card_border">#C3CEDD</color>
+    <color name="text_black">#14213D</color>
+    <color name="text_muted">#46556E</color>
+    <!-- Outlined buttons (Change time, Lock, Cancel, Back): soft mid navy, no black edge. -->
+    <color name="outline">#6F82A3</color>
     <color name="on_green">#2E7D32</color>
-    <color name="off_bg">#E6E3DC</color>
-    <color name="off_text">#55524B</color>
+    <color name="off_bg">#DCE3EC</color>
+    <color name="off_text">#46556E</color>
     <color name="stop_red">#C62828</color>
+    <!-- Red words on white (Delete, Wrong PIN); stop_red is for fills and edges. -->
+    <color name="red_text">#951515</color>
     <color name="warn_yellow">#FFF1BF</color>
     <color name="warn_border">#E3B400</color>
-    <color name="press_dark">#33000000</color>
+    <color name="press_dark">#2214213D</color>
     <color name="press_light">#55FFFFFF</color>
 </resources>

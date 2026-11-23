@@ -124,7 +124,8 @@ public class MainActivity extends Activity {
         b.setGravity(Gravity.CENTER);
         b.setMinimumHeight(dp(64));
         b.setPadding(dp(16), dp(8), dp(16), dp(8));
-        b.setBackground(ripple(R.color.press_dark, getColor(R.color.card), fg, 32));
+        b.setBackground(ripple(R.color.press_dark, getColor(R.color.card),
+                getColor(R.color.outline), 32));
         b.setClickable(true);
         b.setFocusable(true);
         b.setContentDescription(getString(R.string.back));
@@ -287,7 +288,8 @@ public class MainActivity extends Activity {
                 note.setGravity(Gravity.CENTER);
                 root.addView(note, spaced());
             } else {
-                Button lock = outlined(getString(R.string.lock), R.color.text_black, 22, 64);
+                Button lock = outlined(getString(R.string.lock), R.color.text_black,
+                        R.color.outline, 22, 64);
                 lock.setOnClickListener(v -> showLock());
                 root.addView(lock, spaced());
             }
@@ -301,6 +303,7 @@ public class MainActivity extends Activity {
         card.setPadding(p, dp(16), dp(16), dp(16));
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(getColor(R.color.card));
+        bg.setStroke(dp(2), getColor(R.color.card_border));
         bg.setCornerRadius(dp(24));
         card.setBackground(bg);
         card.setElevation(dp(2)); // a soft shadow lifts the card off the page
@@ -330,13 +333,15 @@ public class MainActivity extends Activity {
             // Secondary actions: outlined and side by side, so they don't compete with
             // ON/OFF or look like the red Turn off.
             LinearLayout actions = new LinearLayout(this);
-            Button change = outlined(getString(R.string.change_time), R.color.text_black, 19, 56);
+            Button change = outlined(getString(R.string.change_time), R.color.text_black,
+                    R.color.outline, 19, 56);
             change.setOnClickListener(v -> pickTime(a.hour, a.minute, (h, m) -> {
                 Alarm changed = a.withTime(h, m).withEnabled(true); // picking a time means "ring then"
                 store.update(changed);
                 Scheduler.apply(this, changed);
             }));
-            Button delete = outlined(getString(R.string.delete), R.color.stop_red, 19, 56);
+            Button delete = outlined(getString(R.string.delete), R.color.red_text,
+                    R.color.stop_red, 19, 56);
             delete.setOnClickListener(v -> confirmDelete(a));
             LinearLayout.LayoutParams left = new LinearLayout.LayoutParams(0,
                     LinearLayout.LayoutParams.WRAP_CONTENT, 1);
@@ -628,7 +633,7 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams olp = spaced();
         olp.topMargin = dp(24);
         box.addView(ok, olp);
-        Button no = outlined(getString(R.string.cancel), R.color.text_black, 24, 72);
+        Button no = outlined(getString(R.string.cancel), R.color.text_black, R.color.outline, 24, 72);
         no.setOnClickListener(v -> d.dismiss());
         LinearLayout.LayoutParams nlp = spaced();
         nlp.topMargin = dp(12);
@@ -684,7 +689,7 @@ public class MainActivity extends Activity {
 
     private TextView errorText() {
         TextView t = text("", 20);
-        t.setTextColor(getColor(R.color.stop_red));
+        t.setTextColor(getColor(R.color.red_text));
         return t;
     }
 
@@ -710,10 +715,13 @@ public class MainActivity extends Activity {
         return pill(label, getColor(bgRes), Color.WHITE, 0, R.color.press_light, sp, minHeightDp);
     }
 
-    /** White button with a coloured outline: secondary actions (Change time, Delete, Lock). */
-    private Button outlined(String label, int fgRes, int sp, int minHeightDp) {
-        int fg = getColor(fgRes);
-        return pill(label, getColor(R.color.card), fg, fg, R.color.press_dark, sp, minHeightDp);
+    /**
+     * White button with an outline: secondary actions (Change time, Delete, Lock).
+     * Navy words on a soft navy edge, or for Delete dark red words on a red edge.
+     */
+    private Button outlined(String label, int fgRes, int strokeRes, int sp, int minHeightDp) {
+        return pill(label, getColor(R.color.card), getColor(fgRes), getColor(strokeRes),
+                R.color.press_dark, sp, minHeightDp);
     }
 
     private Button pill(String label, int bg, int fg, int stroke, int pressRes, int sp, int minHeightDp) {
