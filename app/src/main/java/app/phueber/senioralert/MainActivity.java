@@ -51,7 +51,7 @@ public class MainActivity extends Activity {
     private static final int REQ_SAVE = 2; // the file picker for "Save settings to a file"
     private static final int REQ_LOAD = 3; // and for "Load settings from a file"
     private static final String PREF_NOTIF_ASKED = "notif_asked";
-    private static final long UNLOCK_IDLE_MS = 10_000L; // PIN prompt closes after 10 s without typing
+    private static final long UNLOCK_IDLE_MS = 5_000L; // PIN prompt closes after 5 s without typing
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Store store;

@@ -43,7 +43,7 @@ press the word you want. Unlocked, each alarm also has **Change time** and
 **Lock**. Locked,
 only the times and the OFF | ON switches are left, plus a small **Hold to unlock**
 at the very bottom. It only reacts when held down, so it cannot be opened by a
-stray tap. The PIN prompt closes by itself if nothing is typed for 10 seconds.
+stray tap. The PIN prompt closes by itself if nothing is typed for 5 seconds.
 A big **← Back** button stays at the bottom of the screen and goes to the phone's
 home screen, for anyone who does not know the back gesture.
 
@@ -213,7 +213,7 @@ dunkelgrau für AUS. Zum Ändern drückt man das Wort, das man möchte. Entsperr
 50 Wecker) und **Sperren**. Gesperrt bleiben nur die Zeiten und die AUS | AN-Schalter, ganz unten
 ein kleines **Zum Entsperren gedrückt halten**. Es reagiert nur, wenn man es
 gedrückt hält, also nicht auf versehentliches Antippen. Die PIN-Abfrage
-schließt sich von selbst, wenn 10 Sekunden lang nichts eingegeben wird.
+schließt sich von selbst, wenn 5 Sekunden lang nichts eingegeben wird.
 Ganz unten bleibt immer ein großer Knopf **← Zurück**. Er führt zum
 Startbildschirm des Telefons, für alle, die die Zurück-Geste nicht kennen.
 
