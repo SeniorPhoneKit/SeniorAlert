@@ -81,7 +81,7 @@ none of them asks for the PIN:
 ## Install
 
 1. Download the latest `SeniorAlert-*.apk` from the
-   [Releases](https://github.com/philipphueber/SeniorAlert/releases) page on the
+   [Releases](https://github.com/SeniorPhoneKit/SeniorAlert/releases) page on the
    phone.
 2. Open it. Android asks whether to allow installing from this source; allow it
    once.
@@ -236,7 +236,7 @@ davon schaltet ihn aus, und nichts davon fragt nach der PIN:
 ## Installieren
 
 1. Die neueste `SeniorAlert-*.apk` auf dem Telefon von der Seite
-   [Releases](https://github.com/philipphueber/SeniorAlert/releases)
+   [Releases](https://github.com/SeniorPhoneKit/SeniorAlert/releases)
    herunterladen.
 2. Öffnen. Android fragt, ob Installationen aus dieser Quelle erlaubt sind;
    einmal erlauben.
