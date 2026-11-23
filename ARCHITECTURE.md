@@ -12,7 +12,7 @@ Plain Java, platform APIs only. Keep this file current with every change.
 | `AlarmCodec` | List of alarms to/from one string `id:h:m:e;...`. Skips malformed entries, drops duplicate ids, sorts by time then id. Pure. |
 | `NextTrigger` | Next fire time for hour:minute in a given `TimeZone`, via `Calendar`, so 07:00 stays 07:00 across DST. Used when an alarm is switched ON: the next occurrence of its time; "now" (same minute) means tomorrow. `rearm` decides a re-arm from scratch: an ON alarm last armed for a time at most 30 minutes ago (`LATE_GRACE_MS`) has not rung yet, so it keeps that past time and rings at once instead of tomorrow. Pure. |
 | `Pin` | PIN validation (4-8 ASCII digits), salted SHA-256 hash, constant-time compare, and the fixed reset PIN (`RESET`, same in every Senior app; public on purpose). Pure. |
-| `Store` | All persistent state (alarms, next id, lock flag, PIN salt/hash, the time each alarm was last armed for) in device-protected SharedPreferences. `isLocked()` is the launcher's lock or the own PIN lock. Every alarm write (add/update/delete) redraws the widget. `add` refuses a 51st alarm (returns null); the list then shows a note to delete one instead of the Add button, and automation logs and ignores it. |
+| `Store` | All persistent state (alarms, next id, lock flag, PIN salt/hash, the time each alarm was last armed for) in device-protected SharedPreferences. `isLocked()` is the launcher's lock or the own PIN lock. Every alarm write (add/update/delete, `replaceAll` for a restored backup) redraws the widget. `add` refuses a 51st alarm (returns null); the list then shows a note to delete one instead of the Add button, and automation logs and ignores it. |
 | `LauncherLock` | Reads SeniorLauncher's lock (`content://app.phueber.seniorlauncher.lock/state`) and lifts it with its PIN (`call(..., "unlock", pin)`). With the launcher installed, the home screen's lock is the lock: the Lock/PIN button gives way to a note, and "Hold to unlock" asks for the home screen's PIN right here. Without it, the PIN lock works as before. Only the alarm list uses it, never the ringing path. |
 | `Scheduler` | Arms/cancels one `AlarmManager.setAlarmClock` per enabled alarm (inexact `setAndAllowWhileIdle` only if exact alarms are denied). Remembers each armed time in `Store`. `rescheduleAll` re-arms everything from scratch (boot, time or zone change, update, permission change), but an alarm due up to 30 minutes ago that has not rung keeps its time and rings now (`NextTrigger.rearm`); `ensureArmed` arms only what AlarmManager lost (app opened), so a pending, possibly late alarm is never pushed to tomorrow. Both catch a failure per alarm, so one alarm AlarmManager refuses neither stops the rest nor crashes the app on open. |
 | `AlarmReceiver` | Receives a fired alarm: marks it OFF in `Store` first (alarms do not repeat), takes a 30-second wake lock (`RingService.holdCpuUntilRinging`, released in `begin`), then starts `RingService`. If Android refuses the start (API 31-32, inexact fallback alarm), it rings through the ring screen instead (`RingService.ringViaScreen`); only if that notification cannot appear either does it put the alarm back ON (armed for the next occurrence), so a missed ring never shows as OFF. |
@@ -26,6 +26,12 @@ Plain Java, platform APIs only. Keep this file current with every change.
 | `OneLineText` | A `TextView` that stays on one line and shrinks its text only as far as needed to fit its width. Used for both clock times, so a very large phone font never wraps a time ("10:30" / "AM"). The platform autosize needs a fixed height; this needs only the width. |
 | `StopReceiver` | Stops ringing: target of the notification action and of the backup AlarmManager stop. |
 | `MainActivity` | Alarm list, add/edit/delete, an OFF | ON switch per alarm (two halves with bells, `ic_bell.xml`/`ic_bell_off.xml`; the active half is filled and `selected`, pressing the active half does nothing), PIN set/lock/unlock (Unlock needs a long press; the PIN prompt closes after 10 s without typing), setup warnings, banner with stop while ringing, and a Back button (left arrow, `ic_arrow_back.xml`) pinned below the scrolling list that opens the home screen (`CATEGORY_HOME`), because many seniors do not know the back gesture. Opens `RingActivity` itself when ringing starts or it is opened while ringing (the system heads-up would otherwise cover the banner). Warnings that affect whether the ring screen can appear (notifications, ringing channel importance, full-screen) and exact alarms (API 31-32) also show when locked; "Display over other apps" only unlocked. Dialogs (time picker, delete, PIN) are `bigDialog`: a white card with a bold title and stacked full-width OK and Cancel buttons, like SeniorPhone's and SeniorLauncher's `Ui.confirm`. |
+| `Json` | A small JSON reader and writer (maps, lists, text, numbers, booleans), depth-limited. Pure; the platform's `org.json` is only a stub in JVM tests. Same in every Senior app. |
+| `Backup` | The family's backup file: envelope `{"format":"seniorphonekit-backup","version":1,"created":…,"apps":{"<package>":{"appVersion":…,"settings":{…}}}}`, written and read (newer version and malformed refused), typed reads of the settings, the provider's method and error names, and the caller check (`callerAllowed`). Pure. Same in every Senior app. |
+| `AlertBackup` | This app's settings in a backup: the alarms as hour, minute, on (no ids). Reading is all or nothing; a missing `on` is OFF, a bad time or more than `MAX_COUNT` alarms refuses the file. Pure. |
+| `BackupFiles` | The system file picker (`ACTION_CREATE_DOCUMENT` / `ACTION_OPEN_DOCUMENT`) and reading/writing the chosen file, at most 1 MB. Same in every Senior app. |
+| `AlertSettingsBackup` | Export (this app's one-entry file) and restore (replace the alarms, re-arm), shared by `MainActivity` and `BackupProvider`. |
+| `BackupProvider` | `content://app.phueber.senioralert.backup`, `call` only: `export` and `import` for SeniorLauncher's backup of every Senior app. See "Backup". |
 | `NavBar` | Whether SeniorNav's Back & Home bar is on screen: SeniorNav's provider `content://app.phueber.seniornav.bar/state` (column `visible`, observed live while the Back view is attached) if it resolves to SeniorNav, else whether the enabled accessibility services list it. While it is, the pinned Back button is hidden, since the bar already has Back and Home; also re-checked whenever a screen gets focus. Pure part unit tested. |
 
 Pure classes have JVM tests in `app/src/test`; Android-facing classes have none.
@@ -115,6 +121,41 @@ outside the alarm list and the lock. What bounds the damage:
   other alarms unarmed;
 - every command is a few preference writes on the main thread, and malformed
   extras are ignored, so a flood of broadcasts costs time but corrupts nothing.
+
+## Backup
+
+The helper can save the alarms to a file and load them back, after a reset or
+on a new phone. Two outlined buttons under **Backup** at the end of the list,
+only while unlocked (no separate settings screen; the app has none). Files go
+through the Storage Access Framework, so the helper picks the place and the
+app needs no storage permission. Suggested name `SeniorAlert-settings-<date>.json`.
+
+- **Format.** `Backup`'s envelope, the same in every Senior app, with one
+  entry for this app: `"settings": {"alarms": [{"hour": 8, "minute": 0, "on": true}, …]}`.
+  Ids are not saved: they key this phone's AlarmManager intents. The lock and
+  its PIN are not saved. SeniorLauncher's file for every Senior app has the
+  same envelope; this app takes its own entry from it ("holds no settings for
+  SeniorAlert" if there is none).
+- **Restore is a replace.** The file is read and checked before the question
+  "Replace the current settings…?", so a malformed file or one from a newer
+  version is refused with nothing changed. Then `Store.replaceAll` writes the
+  new list in one commit with fresh ids and drops the old armed times, the old
+  alarms are cancelled and every ON alarm is armed with `Scheduler.schedule`,
+  as when the helper switches it ON: a time already past today rings tomorrow,
+  never at once. The widget redraws through Store, the open list through its poll.
+- **Locked.** The buttons are hidden, the lock is checked again when the picker
+  returns, and a restore while locked is refused (`locked`).
+- **Provider.** `BackupProvider` answers `call("export")` with `json` (the
+  one-entry file) and `call("import", json)` with `ok`, plus `skipped`
+  (names not found on this phone; always empty here) or `error` (`malformed`,
+  `newer_version`, `no_entry`, `locked`, `not_allowed`). The restore runs on
+  the main thread like every other alarm change. Only the calling packages
+  SeniorLauncher and this app are answered (`getCallingPackage()`,
+  `Backup.callerAllowed`): a sanity check, not security, so another app cannot
+  read or replace the alarms casually. No permission: the apps have separate
+  signing keys.
+- **Automation.** No command: the file is the helper's pick, and a restore
+  only happens after a question.
 
 ## Widget
 

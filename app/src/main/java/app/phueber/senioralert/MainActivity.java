@@ -48,6 +48,8 @@ import java.util.List;
  */
 public class MainActivity extends Activity {
     private static final int REQ_NOTIF = 1;
+    private static final int REQ_SAVE = 2; // the file picker for "Save settings to a file"
+    private static final int REQ_LOAD = 3; // and for "Load settings from a file"
     private static final String PREF_NOTIF_ASKED = "notif_asked";
     private static final long UNLOCK_IDLE_MS = 10_000L; // PIN prompt closes after 10 s without typing
 
@@ -293,7 +295,112 @@ public class MainActivity extends Activity {
                 lock.setOnClickListener(v -> showLock());
                 root.addView(lock, spaced());
             }
+            addBackup();
         }
+    }
+
+    // ---------------------------------------------------------------- backup
+
+    /**
+     * For the helper, below everything else and only while unlocked: save the
+     * alarms to a file and load them back (after a reset, on a new phone).
+     * The file picker chooses where, so no storage permission is needed.
+     */
+    private void addBackup() {
+        TextView heading = text(getString(R.string.backup_title), 26);
+        heading.setTypeface(Typeface.DEFAULT_BOLD);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) heading.setAccessibilityHeading(true);
+        LinearLayout.LayoutParams hlp = spaced();
+        hlp.topMargin = dp(40);
+        root.addView(heading, hlp);
+        TextView explain = text(getString(R.string.backup_explain), 18);
+        explain.setTextColor(getColor(R.color.text_muted));
+        LinearLayout.LayoutParams elp = spaced();
+        elp.topMargin = dp(4);
+        root.addView(explain, elp);
+        Button save = outlined(getString(R.string.backup_save), R.color.text_black, R.color.outline, 22, 64);
+        save.setOnClickListener(v -> pickFile(BackupFiles.saveIntent(
+                Backup.fileName("SeniorAlert", BackupFiles.today())), REQ_SAVE));
+        root.addView(save, spaced());
+        Button load = outlined(getString(R.string.backup_load), R.color.text_black, R.color.outline, 22, 64);
+        load.setOnClickListener(v -> pickFile(BackupFiles.openIntent(), REQ_LOAD));
+        root.addView(load, spaced());
+    }
+
+    private void pickFile(Intent picker, int request) {
+        if (store.isLocked()) {
+            rebuild();
+            return;
+        }
+        try {
+            startActivityForResult(picker, request);
+        } catch (RuntimeException e) {
+            message(getString(R.string.backup_no_picker));
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int request, int result, Intent data) {
+        super.onActivityResult(request, result, data);
+        if (request != REQ_SAVE && request != REQ_LOAD) return;
+        Uri uri = result == RESULT_OK && data != null ? data.getData() : null;
+        // Cancelled, or locked meanwhile (the lock may change while the picker is open).
+        if (uri == null || store.isLocked()) return;
+        if (request == REQ_SAVE) {
+            try {
+                BackupFiles.write(this, uri, AlertSettingsBackup.export(this));
+                message(getString(R.string.backup_saved));
+            } catch (Exception e) {
+                message(getString(R.string.backup_error_save));
+            }
+            return;
+        }
+        String json;
+        try {
+            json = BackupFiles.read(this, uri);
+        } catch (Exception e) {
+            message(getString(R.string.backup_error_read));
+            return;
+        }
+        // Check the file before asking, so a bad one is refused at once.
+        try {
+            AlertBackup.fromSettings(Backup.settingsFor(json, getPackageName()));
+        } catch (Backup.Failure f) {
+            message(backupError(f.code));
+            return;
+        }
+        dismissDialog();
+        dialog = bigDialog(getString(R.string.backup_confirm), null, null,
+                getString(R.string.backup_replace), R.color.on_green, v -> {
+                    dismissDialog();
+                    AlertSettingsBackup.Result r = AlertSettingsBackup.restore(this, json);
+                    rebuild();
+                    if (r.error != null) {
+                        message(backupError(r.error));
+                    } else if (r.skipped.length > 0) {
+                        message(getString(R.string.backup_restored) + "\n"
+                                + getString(R.string.backup_not_found, String.join(", ", r.skipped)));
+                    } else {
+                        message(getString(R.string.backup_restored));
+                    }
+                });
+    }
+
+    private String backupError(String code) {
+        switch (code) {
+            case Backup.ERROR_NEWER: return getString(R.string.backup_error_newer);
+            case Backup.ERROR_NO_ENTRY:
+                return getString(R.string.backup_error_no_entry, "SeniorAlert");
+            case Backup.ERROR_LOCKED: return getString(R.string.backup_error_locked);
+            default: return getString(R.string.backup_error_malformed);
+        }
+    }
+
+    /** A short answer with one OK button. */
+    private void message(String text) {
+        dismissDialog();
+        dialog = bigDialog(null, text, null, getString(R.string.ok), R.color.on_green,
+                v -> dismissDialog(), false);
     }
 
     private void addRow(Alarm a, boolean locked) {
@@ -597,6 +704,11 @@ public class MainActivity extends Activity {
      */
     private Dialog bigDialog(String title, String message, View body, String okLabel,
                              int okColorRes, View.OnClickListener onOk) {
+        return bigDialog(title, message, body, okLabel, okColorRes, onOk, true);
+    }
+
+    private Dialog bigDialog(String title, String message, View body, String okLabel,
+                             int okColorRes, View.OnClickListener onOk, boolean withCancel) {
         Dialog d = new Dialog(this);
         d.requestWindowFeature(Window.FEATURE_NO_TITLE);
         LinearLayout box = new LinearLayout(this);
@@ -633,11 +745,13 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams olp = spaced();
         olp.topMargin = dp(24);
         box.addView(ok, olp);
-        Button no = outlined(getString(R.string.cancel), R.color.text_black, R.color.outline, 24, 72);
-        no.setOnClickListener(v -> d.dismiss());
-        LinearLayout.LayoutParams nlp = spaced();
-        nlp.topMargin = dp(12);
-        box.addView(no, nlp);
+        if (withCancel) {
+            Button no = outlined(getString(R.string.cancel), R.color.text_black, R.color.outline, 24, 72);
+            no.setOnClickListener(v -> d.dismiss());
+            LinearLayout.LayoutParams nlp = spaced();
+            nlp.topMargin = dp(12);
+            box.addView(no, nlp);
+        }
 
         ScrollView sv = new ScrollView(this);
         sv.addView(box);

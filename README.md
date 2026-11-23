@@ -113,6 +113,17 @@ Then:
 4. Tap **Lock** and choose a PIN (4 to 8 digits). Write the PIN down somewhere
    safe.
 
+## Backup of the alarms
+
+While the app is unlocked, the bottom of the list has **Backup** with two
+buttons. **Save settings to a file** saves the alarms (each time, ON or OFF)
+to a file you choose, for example in Downloads or on Google Drive.
+**Load settings from a file** loads such a file again, after a reset or on a
+new phone: after a question it replaces the alarms with the ones from the file,
+and the ON ones ring at their next time (never at once). The PIN is not saved.
+SeniorLauncher can save and load the settings of every Senior app in one file;
+SeniorAlert loads that file too.
+
 ## Forgotten PIN
 
 Enter the reset PIN **506614**. It opens the lock whatever PIN was chosen,
@@ -139,6 +150,10 @@ also while the app is locked. Malformed commands are ignored.
 Example in Trigly: action *Fire intent*, send mode *Broadcast*, action
 `app.phueber.senioralert.action.ALARM_SET`, package `app.phueber.senioralert`,
 extra `time` = `07:30`. This makes sure a 07:30 alarm is ON.
+
+The backup has no command: saving and loading go through the file picker,
+where the helper chooses the file, and loading replaces the alarms only after
+a question.
 
 ## Privacy
 
@@ -270,6 +285,19 @@ Danach:
 4. **Sperren** antippen und eine PIN wählen (4 bis 8 Ziffern). Die PIN an
    einem sicheren Ort notieren.
 
+## Sicherung der Wecker
+
+Solange die App entsperrt ist, steht unten in der Liste **Sicherung** mit zwei
+Knöpfen. **Einstellungen in eine Datei speichern** speichert die Wecker (jede
+Uhrzeit, AN oder AUS) in einer Datei, die Sie wählen, zum Beispiel unter
+Downloads oder in Google Drive. **Einstellungen aus einer Datei laden** lädt
+eine solche Datei wieder, nach einem Zurücksetzen oder auf einem neuen
+Telefon: Nach einer Rückfrage ersetzt sie die Wecker durch die aus der Datei,
+und die eingeschalteten klingeln zu ihrer nächsten Uhrzeit (nie sofort). Die
+PIN wird nicht gespeichert. SeniorLauncher kann die Einstellungen aller
+Senior-Apps in einer Datei speichern und laden; auch diese Datei lädt
+SeniorAlert.
+
 ## PIN vergessen
 
 Die Reset-PIN **506614** eingeben. Sie öffnet die Sperre unabhängig von der
@@ -297,6 +325,10 @@ Befehle werden ignoriert.
 Beispiel in Trigly: Aktion *Intent senden*, Sendeart *Broadcast*, Aktion
 `app.phueber.senioralert.action.ALARM_SET`, Paket `app.phueber.senioralert`,
 Extra `time` = `07:30`. Damit ist ein Wecker um 07:30 sicher AN.
+
+Für die Sicherung gibt es keinen Befehl: Speichern und Laden laufen über die
+Dateiauswahl, in der die helfende Person die Datei wählt, und Laden ersetzt die
+Wecker erst nach einer Rückfrage.
 
 ## Datenschutz
 

@@ -3,6 +3,7 @@ package app.phueber.senioralert;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -87,6 +88,28 @@ public final class Store {
         list.removeIf(a -> a.id == id);
         prefs.edit().putString(K_ALARMS, AlarmCodec.encode(list)).remove(K_ARMED_PREFIX + id).commit();
         AlarmWidget.updateAll(app);
+    }
+
+    /**
+     * Replaces the whole list (a restored backup) in one write: every alarm
+     * gets a new id, the old ids' armed times are forgotten. Returns the old
+     * list, whose alarms the caller must cancel; the caller must schedule the
+     * ON ones of the new list (alarms()). At most Alarm.MAX_COUNT are kept.
+     */
+    public synchronized List<Alarm> replaceAll(List<AlertBackup.Item> items) {
+        List<Alarm> old = alarms();
+        int id = prefs.getInt(K_NEXT_ID, 1);
+        List<Alarm> list = new ArrayList<>();
+        for (AlertBackup.Item i : items) {
+            if (Alarm.listFull(list.size())) break;
+            list.add(new Alarm(id++, i.hour, i.minute, i.on));
+        }
+        AlarmCodec.sort(list);
+        SharedPreferences.Editor e = prefs.edit();
+        for (Alarm a : old) e.remove(K_ARMED_PREFIX + a.id);
+        e.putInt(K_NEXT_ID, id).putString(K_ALARMS, AlarmCodec.encode(list)).commit();
+        AlarmWidget.updateAll(app);
+        return old;
     }
 
     /** Remembers when the alarm was last armed for (Scheduler), for re-arming later. */
