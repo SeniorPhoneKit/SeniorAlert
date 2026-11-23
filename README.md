@@ -91,7 +91,9 @@ Needs Android 8.0 or newer.
 ## Setting it up (for the helper)
 
 Do this once, while the app is unlocked. The app shows a yellow box for
-anything that still needs to be allowed. Tap each box and allow it:
+anything that still needs to be allowed. Tap each box and allow it; **How?
+Show the steps** under a box shows the exact taps (for example: tap “Alarm” in
+the list, turn on “Allow display over other apps”) with the button to go there:
 
 - **Notifications.** Without them the alarm screen cannot appear.
 - **Full-screen alarms** (newer Android versions). Lets the alarm screen show
@@ -262,7 +264,9 @@ Braucht Android 8.0 oder neuer.
 
 Einmal erledigen, solange die App entsperrt ist. Die App zeigt einen gelben
 Kasten für alles, was noch erlaubt werden muss. Jeden Kasten antippen und
-erlauben:
+erlauben; **Wie? Schritte zeigen** unter einem Kasten zeigt die genauen
+Schritte (zum Beispiel: in der Liste auf „Wecker“ tippen, „Einblendung über
+anderen Apps zulassen“ einschalten) mit der Taste, die dorthin führt:
 
 - **Benachrichtigungen.** Ohne sie kann der Wecker-Bildschirm nicht
   erscheinen.
