@@ -167,8 +167,13 @@ can pick Small, 1 row, 2 rows or Full page.
 
 Plain platform views built in code, with no layout XML and no UI library
 (the widget's layouts are XML because `RemoteViews` needs them). Colours live in
-`res/values/styles.xml`. `AppTheme` is a warm off-white page with dark system-bar
-icons (`values-v27` adds dark navigation-bar icons). `RingTheme` is all red.
+`res/values/styles.xml`. `AppTheme` is the family's Light look, the same as
+SeniorLauncher's Light theme: a cool blue-grey page (#E8EDF4) with dark
+system-bar icons (`values-v27` adds dark navigation-bar icons), white alarm
+cards with a blue-grey edge, deep navy text, a soft mid-navy outline (#6F82A3)
+on the outlined buttons instead of a black edge, and dark red (#951515) for
+red words on white. `ColoursTest` reads the resource files and checks the
+contrast of the pairs the screens and the widget draw. `RingTheme` is all red.
 Both screens use `fitsSystemWindows`, because Android 15 draws apps edge to edge.
 Buttons are rounded `GradientDrawable`s inside the platform `RippleDrawable`,
 so every tap shows feedback. Filled means a main action and outlined means a
