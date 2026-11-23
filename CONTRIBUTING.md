@@ -22,6 +22,7 @@ together is in [ARCHITECTURE.md](ARCHITECTURE.md).
 - **Big and plain.** Large text, large touch targets, high contrast, no
   gestures, no swipe, and no long-press, with one deliberate exception: Unlock
   needs a long press, so a senior cannot open the PIN prompt by accident.
+  Exception: the helper-only step cards (`Steps`) use normal Android sizes.
 
 ## Building
 
