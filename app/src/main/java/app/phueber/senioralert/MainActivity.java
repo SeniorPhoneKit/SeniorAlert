@@ -523,17 +523,20 @@ public class MainActivity extends Activity {
         boolean fullScreenDenied = Build.VERSION.SDK_INT >= 34 && !nm.canUseFullScreenIntent();
         if (!notificationsAllowed() || (!fullScreenDenied && !RingService.ringScreenCanAppear(this))) {
             // Also covers the ringing channel turned down to silent/off in system settings.
-            warning(R.string.warn_notifications, v -> fixNotifications());
+            warning(R.string.warn_notifications, v -> fixNotifications(), R.string.steps_notif_title,
+                    R.array.steps_notif, 0, R.string.steps_notif_action);
         }
         if (fullScreenDenied) {
             warning(R.string.warn_full_screen, v -> open(new Intent(
-                    Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, pkgUri), null));
+                    Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, pkgUri), null),
+                    R.string.steps_full_title, R.array.steps_full, 0, R.string.steps_full_action);
         }
         // Shown locked too: without exact alarms (API 31-32) an alarm rings late and
         // can only start through the ring screen's notification.
         if (!Scheduler.canScheduleExact(this) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             warning(R.string.warn_exact, v -> open(new Intent(
-                    Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, pkgUri), null));
+                    Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, pkgUri), null),
+                    R.string.steps_exact_title, R.array.steps_exact, 0, R.string.steps_exact_action);
         }
         if (locked) return;
 
@@ -542,16 +545,25 @@ public class MainActivity extends Activity {
         if (!Settings.canDrawOverlays(this)) {
             warning(R.string.warn_overlay, v -> open(new Intent(
                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION, pkgUri),
-                    new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)));
+                    new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)),
+                    R.string.steps_overlay_title, R.array.steps_overlay, R.array.steps_overlay_notes,
+                    R.string.steps_overlay_action);
         }
         if (!getSystemService(PowerManager.class).isIgnoringBatteryOptimizations(pkg)) {
             warning(R.string.warn_battery, v -> open(
                     new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, pkgUri),
-                    new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)));
+                    new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)),
+                    R.string.steps_battery_title, R.array.steps_battery, R.array.steps_battery_notes,
+                    R.string.steps_battery_action);
         }
     }
 
-    private void warning(int textRes, View.OnClickListener onClick) {
+    /**
+     * A setup warning: one short line (tap to fix), and under it "How? Show the
+     * steps" for the full instructions (Steps) with the same fix as its button.
+     */
+    private void warning(int textRes, View.OnClickListener onClick, int stepsTitle, int steps,
+                         int notes, int actionLabel) {
         TextView w = text("⚠  " + getString(textRes), 19);
         int p = dp(18);
         w.setPadding(p, p, p, p);
@@ -560,6 +572,10 @@ public class MainActivity extends Activity {
                 getColor(R.color.warn_border), 20));
         w.setOnClickListener(onClick);
         root.addView(w, spaced());
+        LinearLayout.LayoutParams lp = spaced();
+        lp.topMargin = dp(8);
+        root.addView(Steps.button(this, stepsTitle, steps, notes,
+                new Steps.Action(actionLabel, () -> onClick.onClick(w))), lp);
     }
 
     private boolean notificationsAllowed() {

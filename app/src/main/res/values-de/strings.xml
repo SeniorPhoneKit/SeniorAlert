@@ -74,4 +74,49 @@
     <string name="backup_error_read">Die Datei konnte nicht gelesen werden. Es wurde nichts geändert.</string>
     <string name="backup_error_save">Die Datei konnte nicht gespeichert werden.</string>
     <string name="backup_no_picker">Dieses Telefon kann keine Dateien auswählen.</string>
+
+    <string name="steps_button">Wie? Schritte zeigen</string>
+    <string name="steps_notif_title">Benachrichtigungen erlauben</string>
+    <string name="steps_notif_action">Benachrichtigungen erlauben</string>
+    <string-array name="steps_notif">
+        <item>Unten auf „Benachrichtigungen erlauben“ tippen.</item>
+        <item>Fragt Android nach: auf „Zulassen“ tippen.</item>
+        <item>Öffnen sich die Einstellungen: „Alle Benachrichtigungen von Wecker“ einschalten.</item>
+        <item>Dann unter „Andere“ auf „Wecker“ tippen: „Benachrichtigungen anzeigen“ an, und „Standard“ gewählt, nicht „Lautlos“.</item>
+    </string-array>
+    <string name="steps_full_title">Vollbild-Wecker erlauben</string>
+    <string name="steps_full_action">Vollbild-Wecker erlauben</string>
+    <string-array name="steps_full">
+        <item>Unten auf „Vollbild-Wecker erlauben“ tippen.</item>
+        <item>„Vollbildbenachrichtigungen von dieser App erlauben“ einschalten.</item>
+        <item>Mit Zurück hierher: Die Warnung ist weg.</item>
+    </string-array>
+    <string name="steps_exact_title">Genaue Wecker erlauben</string>
+    <string name="steps_exact_action">Genaue Wecker erlauben</string>
+    <string-array name="steps_exact">
+        <item>Unten auf „Genaue Wecker erlauben“ tippen.</item>
+        <item>Den Schalter für „Wecker und Erinnerungen“ einschalten.</item>
+        <item>Mit Zurück hierher: Die Warnung ist weg.</item>
+    </string-array>
+    <string name="steps_overlay_title">Über anderen Apps einblenden</string>
+    <string name="steps_overlay_action">Einblenden über anderen Apps erlauben</string>
+    <string-array name="steps_overlay">
+        <item>Unten auf „Einblenden über anderen Apps erlauben“ tippen.</item>
+        <item>In der Liste auf „Wecker“ tippen.</item>
+        <item>„Einblendung über anderen Apps zulassen“ einschalten.</item>
+        <item>Mit Zurück hierher: Die Warnung ist weg.</item>
+    </string-array>
+    <string-array name="steps_overlay_notes">
+        <item>Die Liste hat sich nicht geöffnet? In den Einstellungen: „Apps“, „Spezieller App-Zugriff“, „Über anderen Apps einblenden“.</item>
+    </string-array>
+    <string name="steps_battery_title">Die App im Hintergrund laufen lassen</string>
+    <string name="steps_battery_action">App laufen lassen</string>
+    <string-array name="steps_battery">
+        <item>Unten auf „App laufen lassen“ tippen.</item>
+        <item>Android fragt „Soll die App immer im Hintergrund ausgeführt werden?“: auf „Zulassen“ tippen.</item>
+    </string-array>
+    <string-array name="steps_battery_notes">
+        <item>Hat sich stattdessen eine Liste geöffnet? „Alle Apps“ wählen, auf „Wecker“ tippen, dann „Nicht optimieren“ oder „Uneingeschränkt“.</item>
+        <item>Samsung: zusätzlich Einstellungen, „Apps“, „Wecker“, „Akku“, „Nicht eingeschränkt“.</item>
+    </string-array>
 </resources>

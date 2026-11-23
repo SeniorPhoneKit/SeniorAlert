@@ -75,4 +75,51 @@
     <string name="backup_error_read">The file could not be read. Nothing was changed.</string>
     <string name="backup_error_save">The file could not be saved.</string>
     <string name="backup_no_picker">This phone cannot choose files.</string>
+
+    <!-- The full steps, shown only when the helper taps "How? Show the steps" under a
+         setup warning (Steps). Each step names what to tap in the words Android shows. -->
+    <string name="steps_button">How? Show the steps</string>
+    <string name="steps_notif_title">Allow notifications</string>
+    <string name="steps_notif_action">Allow notifications</string>
+    <string-array name="steps_notif">
+        <item>Tap “Allow notifications” below.</item>
+        <item>If Android asks: tap “Allow”.</item>
+        <item>If the settings open: turn on “All Alarm notifications”.</item>
+        <item>Then tap “Alarm” under “Other”: “Show notifications” on, and “Default” chosen, not “Silent”.</item>
+    </string-array>
+    <string name="steps_full_title">Allow full-screen alarms</string>
+    <string name="steps_full_action">Allow full-screen alarms</string>
+    <string-array name="steps_full">
+        <item>Tap “Allow full-screen alarms” below.</item>
+        <item>Turn on “Allow full-screen notifications from this app”.</item>
+        <item>Come back with Back: the warning is gone.</item>
+    </string-array>
+    <string name="steps_exact_title">Allow exact alarms</string>
+    <string name="steps_exact_action">Allow exact alarms</string>
+    <string-array name="steps_exact">
+        <item>Tap “Allow exact alarms” below.</item>
+        <item>Turn on “Allow setting alarms and reminders”.</item>
+        <item>Come back with Back: the warning is gone.</item>
+    </string-array>
+    <string name="steps_overlay_title">Allow display over other apps</string>
+    <string name="steps_overlay_action">Allow display over other apps</string>
+    <string-array name="steps_overlay">
+        <item>Tap “Allow display over other apps” below.</item>
+        <item>Tap “Alarm” in the list.</item>
+        <item>Turn on “Allow display over other apps”.</item>
+        <item>Come back with Back: the warning is gone.</item>
+    </string-array>
+    <string-array name="steps_overlay_notes">
+        <item>The list did not open? In Settings: “Apps”, “Special app access”, “Display over other apps”.</item>
+    </string-array>
+    <string name="steps_battery_title">Let the app run in the background</string>
+    <string name="steps_battery_action">Allow the app to run</string>
+    <string-array name="steps_battery">
+        <item>Tap “Allow the app to run” below.</item>
+        <item>Android asks “Let app always run in background?”: tap “Allow”.</item>
+    </string-array>
+    <string-array name="steps_battery_notes">
+        <item>A list opened instead? Choose “All apps”, tap “Alarm”, then “Don’t optimise” or “Unrestricted”.</item>
+        <item>Samsung: also Settings, “Apps”, “Alarm”, “Battery”, “Unrestricted”.</item>
+    </string-array>
 </resources>
