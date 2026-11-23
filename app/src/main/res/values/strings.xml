@@ -57,4 +57,22 @@
         <item quantity="other">+%d more alarms – tap to see all</item>
     </plurals>
     <string name="widget_sample_time" translatable="false">07:30</string>
+
+    <!-- Backup (only while unlocked) -->
+    <string name="backup_title">Backup</string>
+    <string name="backup_explain">Keeps the alarms in a file you choose, for example in Downloads or on Google Drive. Load the file again after a reset or on a new phone.</string>
+    <string name="backup_save">Save settings to a file</string>
+    <string name="backup_load">Load settings from a file</string>
+    <string name="backup_confirm">Replace the current settings with the ones from the file?</string>
+    <string name="backup_replace">Replace</string>
+    <string name="backup_saved">Saved.</string>
+    <string name="backup_restored">Restored.</string>
+    <string name="backup_not_found">Not found on this phone: %1$s</string>
+    <string name="backup_error_malformed">This file is not a readable settings file. Nothing was changed.</string>
+    <string name="backup_error_newer">This file comes from a newer version of the app. Please update the app first. Nothing was changed.</string>
+    <string name="backup_error_no_entry">This file holds no settings for %1$s. Nothing was changed.</string>
+    <string name="backup_error_locked">The alarms are locked. Nothing was changed.</string>
+    <string name="backup_error_read">The file could not be read. Nothing was changed.</string>
+    <string name="backup_error_save">The file could not be saved.</string>
+    <string name="backup_no_picker">This phone cannot choose files.</string>
 </resources>

@@ -128,5 +128,12 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/alarm_widget" />
         </receiver>
+        <!-- Save and load the alarms for SeniorLauncher's backup of every Senior
+             app; answers only SeniorLauncher and this app, see BackupProvider. -->
+        <provider
+            android:name=".BackupProvider"
+            android:authorities="app.phueber.senioralert.backup"
+            android:exported="true"
+            tools:ignore="ExportedContentProvider" />
     </application>
 </manifest>

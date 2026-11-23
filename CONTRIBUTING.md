@@ -36,7 +36,7 @@ gitignored `local.properties` containing `sdk.dir=/path/to/Android/Sdk`.
 
 Unit tests carry the weight; UI testing is kept minimal.
 
-    ./gradlew test        # JVM unit tests (Alarm, AlarmCodec, NextTrigger, Pin, colour contrast)
+    ./gradlew test        # JVM unit tests (Alarm, AlarmCodec, NextTrigger, Pin, Backup, AlertBackup, colour contrast)
     ./gradlew lint
     scripts/smoke.sh      # one on-device check: an alarm rings and Turn off stops it
 
